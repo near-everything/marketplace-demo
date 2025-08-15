@@ -35,3 +35,25 @@ export interface Profile {
 	backgroundImage?: SocialImage;
 	linktree?: Record<string, string>;
 }
+
+// NEP-413: Parameters for the wallet's signMessage method
+export interface SignMessageParams {
+	message: string;
+	recipient: string;
+	nonce: Uint8Array | Buffer;
+	callbackUrl?: string;
+	state?: string;
+}
+
+// NEP-413: Output from the wallet's signMessage method
+export interface SignedMessage {
+	accountId: string;
+	publicKey: string;
+	signature: string;
+	state?: string;
+}
+
+// Wallet Interface (works for fastnear or near-wallet-selector)
+export interface WalletInterface {
+	signMessage: (params: SignMessageParams) => Promise<SignedMessage>;
+}

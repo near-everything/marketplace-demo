@@ -12,6 +12,7 @@ import type {
 import { accountIdSchema } from "./types";
 import type { User } from "better-auth/types";
 import { schema } from "./schema";
+import { verify, generateNonce, type VerifyOptions, type VerificationResult } from "near-sign-verify";
 
 function getOrigin(baseURL: string): string {
 	try {
@@ -92,13 +93,30 @@ async function defaultGetProfile(accountId: AccountId): Promise<Profile | null> 
 	}
 }
 
+async function defaultVerifyMessage(args: SIWNVerifyMessageArgs, requireFullAccessKey: boolean = true): Promise<boolean> {
+	try {
+		const result = await verify(args.authToken, {
+			expectedRecipient: args.expectedRecipient,
+			nonceMaxAge: 15 * 60 * 1000, // 15 minutes
+			requireFullAccessKey,
+		});
+		return result.accountId === args.accountId;
+	} catch (error) {
+		console.error("SIWN verification failed:", error);
+		return false;
+	}
+}
+
 export interface SIWNPluginOptions {
 	domain: string;
 	emailDomainName?: string;
 	anonymous?: boolean;
 	requireFullAccessKey?: boolean;
-	getNonce: () => Promise<string>;
-	verifyMessage: (args: SIWNVerifyMessageArgs) => Promise<boolean>;
+	getNonce?: () => Promise<Uint8Array>;
+	validateNonce?: (nonce: Uint8Array) => boolean;
+	getMessage?: (args: { accountId: AccountId; recipient: string; nonce: Uint8Array }) => string;
+	validateMessage?: (message: string) => boolean;
+	validateRecipient?: (recipient: string) => boolean;
 	getProfile?: (accountId?: AccountId) => Promise<Profile | null>;
 	validateFunctionCallKey?: (args: {
 		accountId: AccountId;
@@ -123,15 +141,18 @@ export const siwn = (options: SIWNPluginOptions) =>
 				async (ctx) => {
 					const { accountId } = ctx.body;
 					const network = getNetworkFromAccountId(accountId);
-					const nonce = await options.getNonce();
+					const nonce = options.getNonce ? await options.getNonce() : generateNonce();
+
+					// Store nonce as base64 string for database compatibility
+					const nonceString = btoa(String.fromCharCode(...nonce));
 
 					await ctx.context.internalAdapter.createVerificationValue({
 						identifier: `siwn:${accountId}:${network}`,
-						value: nonce,
+						value: nonceString,
 						expiresAt: new Date(Date.now() + 15 * 60 * 1000),
 					});
 
-					return ctx.json({ nonce });
+					return ctx.json({ nonce: nonceString });
 				},
 			),
 			getSiwnProfile: createAuthEndpoint(
@@ -225,15 +246,48 @@ export const siwn = (options: SIWNPluginOptions) =>
 							});
 						}
 
-						const verified = await options.verifyMessage({
-							authToken,
-							expectedRecipient: options.domain,
-							accountId,
-						});
+						// Build verify options using plugin configuration
+						let verifyOptions: VerifyOptions;
 
-						if (!verified) {
+						if (options.validateNonce && options.validateRecipient && options.validateMessage) {
+							verifyOptions = {
+								requireFullAccessKey: requireFullAccess,
+								validateNonce: options.validateNonce,
+								validateRecipient: options.validateRecipient,
+								validateMessage: options.validateMessage,
+							};
+						} else if (options.validateNonce && options.validateRecipient) {
+							verifyOptions = {
+								requireFullAccessKey: requireFullAccess,
+								validateNonce: options.validateNonce,
+								validateRecipient: options.validateRecipient,
+							};
+						} else if (options.validateNonce) {
+							verifyOptions = {
+								requireFullAccessKey: requireFullAccess,
+								validateNonce: options.validateNonce,
+								expectedRecipient: options.domain,
+							};
+						} else if (options.validateRecipient) {
+							verifyOptions = {
+								requireFullAccessKey: requireFullAccess,
+								nonceMaxAge: 15 * 60 * 1000,
+								validateRecipient: options.validateRecipient,
+							};
+						} else {
+							verifyOptions = {
+								requireFullAccessKey: requireFullAccess,
+								nonceMaxAge: 15 * 60 * 1000,
+								expectedRecipient: options.domain,
+							};
+						}
+
+						// Verify the signature using near-sign-verify
+						const result: VerificationResult = await verify(authToken, verifyOptions);
+
+						if (result.accountId !== accountId) {
 							throw new APIError("UNAUTHORIZED", {
-								message: "Unauthorized: Invalid NEAR signature",
+								message: "Unauthorized: Account ID mismatch",
 								status: 401,
 							});
 						}

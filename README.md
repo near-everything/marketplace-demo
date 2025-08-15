@@ -72,30 +72,68 @@ export const authClient = createAuthClient({
 
 ### Frontend Usage
 
+#### Simple One-Line Authentication
+
 ```typescript
-import * as near from "fastintear";
-import { sign } from "near-sign-verify";
+import { authClient } from "./auth-client";
+
+// One-line NEAR wallet authentication
+const { data, error } = await authClient.signIn.near();
+
+if (data) {
+  console.log("Signed in successfully:", data.user);
+} else {
+  console.error("Login failed:", error);
+}
+```
+
+#### Full Wallet Access
+
+```typescript
+// Access complete FastINTEAR functionality through authClient.near.wallet
+const wallet = authClient.near.wallet;
+
+// Connect to NEAR wallet
+await wallet.requestSignIn({ contractId: "yourapp.com" });
+
+// Get account information
+const accountId = await wallet.accountId();
+const publicKey = await wallet.publicKey();
+
+// Send transactions
+await wallet.sendTx({
+  receiverId: "contract.near",
+  actions: [
+    (await wallet.actions).functionCall({
+      methodName: "my_method",
+      args: { key: "value" },
+      gas: "30000000000000",
+      deposit: "0"
+    })
+  ]
+});
+
+// Sign messages
+const signature = await wallet.signMessage({
+  message: "Hello NEAR!",
+  recipient: "yourapp.com"
+});
+```
+
+#### Manual Authentication Flow
+
+```typescript
 import { authClient } from "./auth-client";
 
 async function signInWithNear(accountId: string) {
   try {
-    // Configure FastINTEAR
-    near.config({ networkId: "mainnet" });
-    
-    // 1. Authenticate with INTEAR Wallet
-    await near.requestSignIn({ contractId: "yourapp.com" });
-    
-    // 2. Get nonce from server
+    // 1. Get nonce from server
     const { data: nonceData } = await authClient.near.nonce({ accountId });
     
-    // 3. Sign message using FastINTEAR as signer
-    const authToken = await sign("Sign in to MyApp", {
-      signer: near, // FastINTEAR's near object
-      recipient: "yourapp.com",
-      nonce: new TextEncoder().encode(nonceData.nonce),
-    });
+    // 2. Sign message with your wallet (implementation depends on wallet)
+    const authToken = "base64_signed_message"; // From your wallet
     
-    // 4. Verify and create session
+    // 3. Verify and create session
     const { data, error } = await authClient.near.verify({
       authToken,
       accountId,
