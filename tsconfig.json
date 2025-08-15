@@ -26,5 +26,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["temp/**"]
+  "exclude": ["node_modules/**", "src/near/near.test.ts"]
 }

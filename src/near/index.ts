@@ -8,11 +8,18 @@ import type {
 	NearAccount,
 	Profile,
 	SocialImage,
-	accountIdSchema,
 } from "./types";
+import { accountIdSchema } from "./types";
 import type { User } from "better-auth/types";
 import { schema } from "./schema";
-import { getOrigin } from "better-auth/utils/url";
+
+function getOrigin(baseURL: string): string {
+	try {
+		return new URL(baseURL).origin;
+	} catch {
+		return baseURL;
+	}
+}
 
 const ACCOUNT_ID_REGEX =
 	/^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;
@@ -41,6 +48,12 @@ function getImageUrl(
 	return fallback || FALLBACK_URL;
 }
 
+interface SocialApiResponse {
+	[accountId: string]: {
+		profile?: Profile;
+	};
+}
+
 async function defaultGetProfile(accountId: AccountId): Promise<Profile | null> {
 	const network = getNetworkFromAccountId(accountId);
 	const apiServer = network === 'mainnet' 
@@ -60,15 +73,15 @@ async function defaultGetProfile(accountId: AccountId): Promise<Profile | null> 
 			throw new Error(`HTTP error! status: ${response.status}`);
 		}
 		
-		const data = await response.json();
+		const data = await response.json() as SocialApiResponse;
 		const profile: Profile | undefined = data?.[accountId]?.profile;
 		
 		if (profile) {
 			return {
 				name: profile.name,
 				description: profile.description,
-				image: getImageUrl(profile.image),
-				backgroundImage: getImageUrl(profile.backgroundImage),
+				image: profile.image,
+				backgroundImage: profile.backgroundImage,
 				linktree: profile.linktree
 			};
 		}
@@ -145,7 +158,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 						const nearAccount: NearAccount | null = await ctx.context.adapter.findOne({
 							model: "nearAccount",
 							where: [
-								{ field: "userId", operator: "eq", value: session.userId },
+								{ field: "userId", operator: "eq", value: session.user.id },
 								{ field: "isPrimary", operator: "eq", value: true },
 							],
 						});
