@@ -11,49 +11,56 @@ export interface NearAccount {
 	id: string;
 	userId: string;
 	accountId: string;
-	network: string;
+	network: "mainnet" | "testnet";
 	publicKey: string;
 	isPrimary: boolean;
 	createdAt: Date;
 }
 
-export interface SIWNVerifyMessageArgs {
-	authToken: string;
-	expectedRecipient: string;
-	accountId: string;
-}
+export const socialImageSchema = z.object({
+	url: z.string().optional(),
+	ipfs_cid: z.string().optional(),
+});
 
-export interface SocialImage {
-	url?: string;
-	ipfs_cid?: string;
-}
+export const profileSchema = z.object({
+	name: z.string().optional(),
+	description: z.string().optional(),
+	image: socialImageSchema.optional(),
+	backgroundImage: socialImageSchema.optional(),
+	linktree: z.record(z.string(), z.string()).optional(),
+});
 
-export interface Profile {
-	name?: string;
-	description?: string;
-	image?: SocialImage;
-	backgroundImage?: SocialImage;
-	linktree?: Record<string, string>;
-}
+export type SocialImage = z.infer<typeof socialImageSchema>;
+export type Profile = z.infer<typeof profileSchema>;
 
-// NEP-413: Parameters for the wallet's signMessage method
-export interface SignMessageParams {
-	message: string;
-	recipient: string;
-	nonce: Uint8Array | Buffer;
-	callbackUrl?: string;
-	state?: string;
-}
 
-// NEP-413: Output from the wallet's signMessage method
-export interface SignedMessage {
-	accountId: string;
-	publicKey: string;
-	signature: string;
-	state?: string;
-}
+export const NonceRequest = z.object({ accountId: accountIdSchema });
+export const VerifyRequest = z.object({
+	authToken: z.string().min(1),
+	accountId: accountIdSchema,
+	email: z.email().optional(),
+});
+export const ProfileRequest = z.object({
+	accountId: accountIdSchema.optional(),
+});
 
-// Wallet Interface (works for fastnear or near-wallet-selector)
-export interface WalletInterface {
-	signMessage: (params: SignMessageParams) => Promise<SignedMessage>;
-}
+export const NonceResponse = z.object({ nonce: z.string() }); // Base64 string
+export const VerifyResponse = z.object({
+	token: z.string(),
+	success: z.literal(true),
+	user: z.object({
+		id: z.string(),
+		accountId: accountIdSchema,
+		network: z.union([z.literal("mainnet"), z.literal("testnet")]),
+	}),
+});
+export const ProfileResponse = z.object({
+	profile: profileSchema.nullable(),
+});
+
+export type NonceRequestT = z.infer<typeof NonceRequest>;
+export type NonceResponseT = z.infer<typeof NonceResponse>;
+export type VerifyRequestT = z.infer<typeof VerifyRequest>;
+export type VerifyResponseT = z.infer<typeof VerifyResponse>;
+export type ProfileRequestT = z.infer<typeof ProfileRequest>;
+export type ProfileResponseT = z.infer<typeof ProfileResponse>;

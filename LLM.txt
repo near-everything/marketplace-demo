@@ -66,7 +66,10 @@ The Sign in with NEAR (SIWN) plugin allows users to authenticate using their NEA
     import { siwnClient } from "better-near-auth/client";
 
     export const authClient = createAuthClient({
-        plugins: [siwnClient("example.com")], // Domain must match server plugin
+        plugins: [siwnClient({
+            domain: "example.com", // Domain must match server plugin
+            signer: nearWallet, // Your NEAR wallet/signer instance
+        })],
     });
     ```
   </Step>

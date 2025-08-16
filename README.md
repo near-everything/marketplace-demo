@@ -66,7 +66,10 @@ import { siwnClient } from "better-near-auth/client";
 
 export const authClient = createAuthClient({
   baseURL: "http://localhost:3000",
-  plugins: [siwnClient("yourapp.com")], // Domain must match server plugin
+  plugins: [siwnClient({
+    domain: "yourapp.com", // Domain must match server plugin
+    signer: nearWallet, // Your NEAR wallet/signer instance
+  })],
 });
 ```
 

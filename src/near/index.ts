@@ -1,18 +1,23 @@
+import { bytesToBase64, toBase64 } from "@fastnear/utils";
 import { APIError, createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
-import { z } from "zod";
-import type { BetterAuthPlugin } from "better-auth/types";
+import type { BetterAuthPlugin, User } from "better-auth/types";
+import { generateNonce, verify, type VerificationResult, type VerifyOptions } from "near-sign-verify";
+import { schema } from "./schema";
 import type {
 	AccountId,
-	SIWNVerifyMessageArgs,
 	NearAccount,
 	Profile,
-	SocialImage,
+	SocialImage
 } from "./types";
-import { accountIdSchema } from "./types";
-import type { User } from "better-auth/types";
-import { schema } from "./schema";
-import { verify, generateNonce, type VerifyOptions, type VerificationResult, parseAuthToken } from "near-sign-verify";
+import {
+	NonceRequest,
+	NonceResponse,
+	ProfileRequest,
+	ProfileResponse,
+	VerifyRequest,
+	VerifyResponse
+} from "./types";
 
 function getOrigin(baseURL: string): string {
 	try {
@@ -20,17 +25,6 @@ function getOrigin(baseURL: string): string {
 	} catch {
 		return baseURL;
 	}
-}
-
-const ACCOUNT_ID_REGEX =
-	/^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/;
-
-function validateAccountId(accountId: string): boolean {
-	return (
-		accountId.length >= 2 &&
-		accountId.length <= 64 &&
-		ACCOUNT_ID_REGEX.test(accountId)
-	);
 }
 
 function getNetworkFromAccountId(accountId: string): "mainnet" | "testnet" {
@@ -57,26 +51,27 @@ interface SocialApiResponse {
 
 async function defaultGetProfile(accountId: AccountId): Promise<Profile | null> {
 	const network = getNetworkFromAccountId(accountId);
-	const apiServer = network === 'mainnet' 
-		? "https://api.near.social" 
-		: "https://test.api.near.social";
-	
+	const apiBase = {
+		mainnet: "https://api.near.social",
+		testnet: "https://test.api.near.social",
+	}[network];
+
 	const keys = [`${accountId}/profile/**`];
-	
+
 	try {
-		const response = await fetch(`${apiServer}/get`, {
+		const response = await fetch(`${apiBase}/get`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ keys })
 		});
-		
+
 		if (!response.ok) {
 			throw new Error(`HTTP error! status: ${response.status}`);
 		}
-		
+
 		const data = await response.json() as SocialApiResponse;
 		const profile: Profile | undefined = data?.[accountId]?.profile;
-		
+
 		if (profile) {
 			return {
 				name: profile.name,
@@ -88,42 +83,44 @@ async function defaultGetProfile(accountId: AccountId): Promise<Profile | null> 
 		}
 		return null;
 	} catch (error) {
-		console.error("NEAR Social lookup failed:", error);
 		return null;
 	}
 }
 
-async function defaultVerifyMessage(args: SIWNVerifyMessageArgs, requireFullAccessKey: boolean = true): Promise<boolean> {
-	try {
-		const result = await verify(args.authToken, {
-			expectedRecipient: args.expectedRecipient,
-			nonceMaxAge: 15 * 60 * 1000, // 15 minutes
-			requireFullAccessKey,
-		});
-		return result.accountId === args.accountId;
-	} catch (error) {
-		console.error("SIWN verification failed:", error);
-		return false;
-	}
-}
 
-export interface SIWNPluginOptions {
-	domain: string;
-	emailDomainName?: string;
-	anonymous?: boolean;
-	requireFullAccessKey?: boolean;
-	getNonce?: () => Promise<Uint8Array>;
-	validateNonce?: (nonce: Uint8Array) => boolean;
-	getMessage?: (args: { accountId: AccountId; recipient: string; nonce: Uint8Array }) => string;
-	validateMessage?: (message: string) => boolean;
-	validateRecipient?: (recipient: string) => boolean;
-	getProfile?: (accountId?: AccountId) => Promise<Profile | null>;
-	validateFunctionCallKey?: (args: {
-		accountId: AccountId;
-		publicKey: string;
-		contractId?: string;
-	}) => Promise<boolean>;
-}
+export type SIWNPluginOptions =
+	| {
+		domain: string;
+		anonymous?: true;
+		emailDomainName?: string;
+		requireFullAccessKey?: boolean;
+		getNonce?: () => Promise<Uint8Array>;
+		validateNonce?: (nonce: Uint8Array) => boolean;
+		validateRecipient?: (recipient: string) => boolean;
+		validateMessage?: (message: string) => boolean;
+		getProfile?: (accountId: AccountId) => Promise<Profile | null>;
+		validateFunctionCallKey?: (args: {
+			accountId: AccountId;
+			publicKey: string;
+			contractId?: string;
+		}) => Promise<boolean>;
+	}
+	| {
+		domain: string;
+		anonymous: false;
+		emailDomainName?: string;
+		requireFullAccessKey?: boolean;
+		getNonce?: () => Promise<Uint8Array>;
+		validateNonce?: (nonce: Uint8Array) => boolean;
+		validateRecipient?: (recipient: string) => boolean;
+		validateMessage?: (message: string) => boolean;
+		getProfile?: (accountId: AccountId) => Promise<Profile | null>;
+		validateFunctionCallKey?: (args: {
+			accountId: AccountId;
+			publicKey: string;
+			contractId?: string;
+		}) => Promise<boolean>;
+	};
 
 export const siwn = (options: SIWNPluginOptions) =>
 	({
@@ -134,9 +131,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 				"/near/nonce",
 				{
 					method: "POST",
-					body: z.object({
-						accountId: accountIdSchema,
-					}),
+					body: NonceRequest,
 				},
 				async (ctx) => {
 					const { accountId } = ctx.body;
@@ -144,24 +139,22 @@ export const siwn = (options: SIWNPluginOptions) =>
 					const nonce = options.getNonce ? await options.getNonce() : generateNonce();
 
 					// Store nonce as base64 string for database compatibility
-					const nonceString = btoa(String.fromCharCode(...nonce));
+					const nonceString = bytesToBase64(nonce);
 
 					await ctx.context.internalAdapter.createVerificationValue({
 						identifier: `siwn:${accountId}:${network}`,
-						value: nonceString,
+						value: nonceString!,
 						expiresAt: new Date(Date.now() + 15 * 60 * 1000),
 					});
 
-					return ctx.json({ nonce: nonceString });
+					return ctx.json(NonceResponse.parse({ nonce: nonceString }));
 				},
 			),
 			getSiwnProfile: createAuthEndpoint(
 				"/near/profile",
 				{
 					method: "POST",
-					body: z.object({
-						accountId: accountIdSchema.optional(),
-					}),
+					body: ProfileRequest,
 				},
 				async (ctx) => {
 					const { accountId } = ctx.body;
@@ -195,24 +188,17 @@ export const siwn = (options: SIWNPluginOptions) =>
 					}
 
 					const profile = await (options.getProfile || defaultGetProfile)(targetAccountId);
-					return ctx.json({ profile });
+					return ctx.json(ProfileResponse.parse({ profile }));
 				},
 			),
 			verifySiwnMessage: createAuthEndpoint(
 				"/near/verify",
 				{
 					method: "POST",
-					body: z
-						.object({
-							authToken: z.string().min(1),
-							accountId: accountIdSchema,
-							email: z.email().optional(),
-						})
-						.refine((data) => options.anonymous !== false || !!data.email, {
-							message:
-								"Email is required when the anonymous plugin option is disabled.",
-							path: ["email"],
-						}),
+					body: VerifyRequest.refine((data) => options.anonymous !== false || !!data.email, {
+						message: "Email is required when the anonymous plugin option is disabled.",
+						path: ["email"],
+					}),
 					requireRequest: true,
 				},
 				async (ctx) => {
@@ -247,47 +233,20 @@ export const siwn = (options: SIWNPluginOptions) =>
 						}
 
 						// Build verify options using plugin configuration
-						let verifyOptions: VerifyOptions;
-
-						if (options.validateNonce && options.validateRecipient && options.validateMessage) {
-							verifyOptions = {
-								requireFullAccessKey: requireFullAccess,
-								validateNonce: options.validateNonce,
-								validateRecipient: options.validateRecipient,
-								validateMessage: options.validateMessage,
-							};
-						} else if (options.validateNonce && options.validateRecipient) {
-							verifyOptions = {
-								requireFullAccessKey: requireFullAccess,
-								validateNonce: options.validateNonce,
-								validateRecipient: options.validateRecipient,
-							};
-						} else if (options.validateNonce) {
-							verifyOptions = {
-								requireFullAccessKey: requireFullAccess,
-								validateNonce: options.validateNonce,
-								expectedRecipient: options.domain,
-							};
-						} else if (options.validateRecipient) {
-							verifyOptions = {
-								requireFullAccessKey: requireFullAccess,
-								nonceMaxAge: 15 * 60 * 1000,
-								validateRecipient: options.validateRecipient,
-							};
-						} else {
-							verifyOptions = {
-								requireFullAccessKey: requireFullAccess,
-								nonceMaxAge: 15 * 60 * 1000,
-								expectedRecipient: options.domain,
-							};
-						}
-
-						console.log("authToken", parseAuthToken(authToken));
+						const requireFullAccess = options.requireFullAccessKey ?? true;
+						const verifyOptions: VerifyOptions = {
+							requireFullAccessKey: requireFullAccess,
+							...(options.validateNonce
+								? { validateNonce: options.validateNonce }
+								: { nonceMaxAge: 15 * 60 * 1000 }),
+							...(options.validateRecipient
+								? { validateRecipient: options.validateRecipient }
+								: { expectedRecipient: options.domain }),
+							...(options.validateMessage ? { validateMessage: options.validateMessage } : {}),
+						} as VerifyOptions;
 
 						// Verify the signature using near-sign-verify
 						const result: VerificationResult = await verify(authToken, verifyOptions);
-
-						console.log("result", result);
 
 						if (result.accountId !== accountId) {
 							throw new APIError("UNAUTHORIZED", {
@@ -364,7 +323,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 								options.emailDomainName ?? getOrigin(ctx.context.baseURL);
 							const userEmail =
 								!isAnon && email ? email : `${accountId}@${domain}`;
-							
+
 							const profile = await (options.getProfile || defaultGetProfile)(accountId);
 
 							user = await ctx.context.internalAdapter.createUser({
@@ -430,7 +389,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 
 						await setSessionCookie(ctx, { session, user });
 
-						return ctx.json({
+						return ctx.json(VerifyResponse.parse({
 							token: session.token,
 							success: true,
 							user: {
@@ -438,7 +397,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 								accountId,
 								network,
 							},
-						});
+						}));
 					} catch (error: unknown) {
 						if (error instanceof APIError) throw error;
 						throw new APIError("UNAUTHORIZED", {
@@ -452,4 +411,5 @@ export const siwn = (options: SIWNPluginOptions) =>
 		},
 	}) satisfies BetterAuthPlugin;
 
-export { validateAccountId, getNetworkFromAccountId, defaultGetProfile };
+export { defaultGetProfile, getNetworkFromAccountId };
+
