@@ -12,7 +12,7 @@ import type {
 import { accountIdSchema } from "./types";
 import type { User } from "better-auth/types";
 import { schema } from "./schema";
-import { verify, generateNonce, type VerifyOptions, type VerificationResult } from "near-sign-verify";
+import { verify, generateNonce, type VerifyOptions, type VerificationResult, parseAuthToken } from "near-sign-verify";
 
 function getOrigin(baseURL: string): string {
 	try {
@@ -206,7 +206,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 						.object({
 							authToken: z.string().min(1),
 							accountId: accountIdSchema,
-							email: z.string().email().optional(),
+							email: z.email().optional(),
 						})
 						.refine((data) => options.anonymous !== false || !!data.email, {
 							message:
@@ -282,8 +282,12 @@ export const siwn = (options: SIWNPluginOptions) =>
 							};
 						}
 
+						console.log("authToken", parseAuthToken(authToken));
+
 						// Verify the signature using near-sign-verify
 						const result: VerificationResult = await verify(authToken, verifyOptions);
+
+						console.log("result", result);
 
 						if (result.accountId !== accountId) {
 							throw new APIError("UNAUTHORIZED", {
@@ -293,11 +297,10 @@ export const siwn = (options: SIWNPluginOptions) =>
 						}
 
 						if (!requireFullAccess && options.validateFunctionCallKey) {
-							const publicKey = "";
 							const isValidFunctionKey = await options.validateFunctionCallKey({
-								accountId,
-								publicKey,
-							});
+								accountId: result.accountId,
+								publicKey: result.publicKey,
+							}); // we can validate against an access control contract
 
 							if (!isValidFunctionKey) {
 								throw new APIError("UNAUTHORIZED", {
@@ -376,7 +379,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 									userId: user.id,
 									accountId,
 									network,
-									publicKey: "",
+									publicKey: result.publicKey,
 									isPrimary: true,
 									createdAt: new Date(),
 								},
@@ -397,7 +400,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 										userId: user.id,
 										accountId,
 										network,
-										publicKey: "",
+										publicKey: result.publicKey,
 										isPrimary: false,
 										createdAt: new Date(),
 									},

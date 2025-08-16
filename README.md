@@ -66,7 +66,7 @@ import { siwnClient } from "better-near-auth/client";
 
 export const authClient = createAuthClient({
   baseURL: "http://localhost:3000",
-  plugins: [siwnClient()],
+  plugins: [siwnClient("yourapp.com")], // Domain must match server plugin
 });
 ```
 
@@ -403,7 +403,7 @@ import { siwnClient } from "better-near-auth/client";
 
 export const authClient = createAuthClient({
   baseURL: "http://localhost:3000",
-  plugins: [siwnClient()],
+  plugins: [siwnClient("myapp.com")], // Domain must match server plugin
 });
 
 // login.tsx - React component

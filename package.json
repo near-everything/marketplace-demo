@@ -43,7 +43,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "fastintear": "^0.2.0",
+    "fastintear": "link:fastintear",
     "near-sign-verify": "^0.4.3",
     "zod": "^4.0.17"
   },
