@@ -68,7 +68,6 @@ The Sign in with NEAR (SIWN) plugin allows users to authenticate using their NEA
     export const authClient = createAuthClient({
         plugins: [siwnClient({
             domain: "example.com", // Domain must match server plugin
-            signer: nearWallet, // Your NEAR wallet/signer instance
         })],
     });
     ```
@@ -90,11 +89,19 @@ The Sign in with NEAR (SIWN) plugin allows users to authenticate using their NEA
 The simplest way to authenticate with NEAR:
 
 ```ts title="simple-auth.ts"
-const { data, error } = await authClient.signIn.near();
+const response = await authClient.signIn.near(
+  { recipient: window.location.origin, signer: window.near },
+  {
+    onSuccess: () => {
+      console.log("Successfully signed in!");
+    },
+    onError: (error) => {
+      console.error("Sign in failed:", error.message);
+    }
+  }
+);
 
-if (data) {
-  console.log("Signed in successfully:", data.user);
-}
+console.log("Signed in as:", response.user.accountId);
 ```
 
 ### React Component
@@ -114,40 +121,40 @@ export function LoginButton() {
     );
   }
 
+  const handleSignIn = async () => {
+    await authClient.signIn.near(
+      { recipient: window.location.origin, signer: window.near },
+      {
+        onSuccess: () => {
+          console.log("Successfully signed in!");
+        },
+        onError: (error) => {
+          console.error("Sign in failed:", error.message);
+        }
+      }
+    );
+  };
+
   return (
-    <button onClick={() => authClient.signIn.near()}>
+    <button onClick={handleSignIn}>
       Sign in with NEAR
     </button>
   );
 }
 ```
 
-### Full Wallet Access
+### Profile Access
 
-Access the complete NEAR wallet functionality:
+Access user profiles from NEAR Social:
 
-```ts title="wallet-usage.ts"
-// Get wallet instance
-const wallet = authClient.near.wallet;
+```ts title="profile-usage.ts"
+// Get current user's profile (requires authentication)
+const { data: myProfile } = await authClient.near.getProfile();
+console.log("My profile:", myProfile);
 
-// Send transactions
-await wallet.sendTx({
-  receiverId: "contract.near",
-  actions: [
-    (await wallet.actions).functionCall({
-      methodName: "my_method",
-      args: { key: "value" },
-      gas: "30000000000000",
-      deposit: "0"
-    })
-  ]
-});
-
-// Sign messages
-const signature = await wallet.signMessage({
-  message: "Hello NEAR!",
-  recipient: "myapp.com"
-});
+// Get specific user's profile (no auth required)
+const { data: aliceProfile } = await authClient.near.getProfile("alice.near");
+console.log("Alice's profile:", aliceProfile);
 ```
 
 ## Configuration Options
@@ -396,19 +403,17 @@ The plugin automatically validates NEAR account IDs:
 
 ### Client Methods
 
-#### `authClient.signIn.near()`
-One-line NEAR wallet authentication.
+#### `authClient.signIn.near(params, callbacks?)`
+One-line NEAR wallet authentication with optional callbacks.
 
 ```typescript
-const { data, error } = await authClient.signIn.near();
-```
-
-#### `authClient.near.wallet`
-Access to complete FastINTEAR wallet functionality.
-
-```typescript
-const wallet = authClient.near.wallet;
-await wallet.requestSignIn({ contractId: "myapp.com" });
+const response = await authClient.signIn.near(
+  { recipient: window.location.origin, signer: window.near },
+  {
+    onSuccess: () => console.log("Success!"),
+    onError: (error) => console.error(error)
+  }
+);
 ```
 
 #### `authClient.near.nonce(params)`
@@ -432,10 +437,14 @@ const { data, error } = await authClient.near.verify({
 ```
 
 #### `authClient.near.getProfile(accountId?)`
-Get user profile from NEAR Social or custom provider.
+Get user profile from NEAR Social or custom provider. If no accountId provided, returns current user's profile.
 
 ```typescript
+// Get specific user's profile
 const { data } = await authClient.near.getProfile("alice.near");
+
+// Get current user's profile (requires authentication)
+const { data } = await authClient.near.getProfile();
 ```
 
 ## Type Definitions
@@ -478,6 +487,179 @@ export interface Profile {
 - Always verify recipient matches your domain exactly
 - Use HTTPS in production environments
 - Implement rate limiting on authentication endpoints
+
+## Complete Authentication Flow
+
+For a complete implementation example:
+
+```ts title="auth.ts"
+// Server setup
+import { betterAuth } from "better-auth";
+import { siwn } from "better-near-auth";
+
+export const auth = betterAuth({
+  database: {
+    provider: "sqlite",
+    url: "./db.sqlite"
+  },
+  plugins: [
+    siwn({
+      domain: "myapp.com",
+    }),
+  ],
+});
+```
+
+```ts title="client.ts"
+// Client setup
+import { createAuthClient } from "better-auth/client";
+import { siwnClient } from "better-near-auth/client";
+
+export const authClient = createAuthClient({
+  baseURL: "http://localhost:3000",
+  plugins: [siwnClient({
+    domain: "myapp.com", // Domain must match server plugin
+  })],
+});
+```
+
+```tsx title="login.tsx"
+// React component with FastINTEAR
+import { authClient } from "./client";
+import { useState } from "react";
+
+export function LoginButton() {
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const handleConnectWallet = async () => {
+    setIsConnecting(true);
+    setError(null);
+    
+    try {
+      // Step 1: Connect to NEAR wallet (opens popup)
+      await window.near.requestSignIn({ 
+        contractId: "myapp.com" // Your app's domain
+      });
+      
+      // After popup closes, check connection
+      const connectedAccountId = window.near.accountId();
+      setAccountId(connectedAccountId);
+    } catch (error) {
+      console.error("Wallet connection failed:", error);
+      setError("Failed to connect wallet");
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleSignInWithNear = async () => {
+    if (!accountId) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    setIsSigningIn(true);
+    setError(null);
+
+    try {
+      // Step 2: Authenticate with better-auth (opens popup)
+      const response = await authClient.signIn.near(
+        {
+          recipient: window.location.origin,
+          signer: window.near,
+        },
+        {
+          onSuccess: async () => {
+            console.log(`Successfully signed in as: ${accountId}`);
+            setIsAuthenticated(true);
+            
+            // Optionally fetch user profile
+            try {
+              const profile = await authClient.near.getProfile();
+              console.log("User profile:", profile);
+            } catch (profileError) {
+              console.error("Failed to fetch profile:", profileError);
+            }
+          },
+          onError: (error) => {
+            console.error("NEAR sign in failed:", error);
+            setError(error.message || "Authentication failed");
+            setIsAuthenticated(false);
+          },
+        }
+      );
+      
+      console.log("Sign in response:", response);
+    } catch (error) {
+      console.error("Sign in error:", error);
+      setError("Authentication failed");
+      setIsAuthenticated(false);
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      // Sign out from both wallet and auth session
+      await window.near.signOut();
+      await authClient.signOut();
+      setAccountId(null);
+      setIsAuthenticated(false);
+      setError(null);
+    } catch (error) {
+      console.error("Sign out failed:", error);
+      setError("Failed to sign out");
+    }
+  };
+
+  if (isAuthenticated) {
+    return (
+      <div>
+        <p>Successfully authenticated as: {accountId}</p>
+        <button onClick={handleSignOut}>
+          Sign Out
+        </button>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+      </div>
+    );
+  }
+
+  if (accountId) {
+    return (
+      <div>
+        <p>Wallet connected: {accountId}</p>
+        <button 
+          onClick={handleSignInWithNear}
+          disabled={isSigningIn}
+        >
+          {isSigningIn ? "Signing in..." : "Sign in with NEAR"}
+        </button>
+        <button onClick={handleSignOut}>
+          Disconnect Wallet
+        </button>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button 
+        onClick={handleConnectWallet}
+        disabled={isConnecting}
+      >
+        {isConnecting ? "Connecting..." : "Connect NEAR Wallet"}
+      </button>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+    </div>
+  );
+}
+```
 
 ## Dependencies
 

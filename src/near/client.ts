@@ -1,10 +1,10 @@
 import { base64ToBytes } from "@fastnear/utils";
-import type { BetterAuthClientPlugin } from "better-auth/client";
+import type { BetterAuthClientPlugin, BetterFetchOption, BetterFetchResponse } from "better-auth/client";
 import { sign, type WalletInterface } from "near-sign-verify";
 import type { siwn } from ".";
-import type { AccountId, NonceRequestT, NonceResponseT, ProfileResponseT, VerifyRequestT, VerifyResponseT } from "./types";
+import { type AccountId, type NonceRequestT, type NonceResponseT, type ProfileResponseT, type VerifyRequestT, type VerifyResponseT } from "./types";
 
-export interface NearAuthSigner {
+export interface Signer {
 	accountId(): string | null;
 	signMessage: WalletInterface["signMessage"];
 }
@@ -16,17 +16,16 @@ export interface AuthCallbacks {
 
 export interface SIWNClientConfig {
 	domain: string;
-	signer: NearAuthSigner;
 }
 
 export interface SIWNClientActions {
 	near: {
-		nonce: (params: NonceRequestT) => Promise<NonceResponseT>;
-		verify: (params: VerifyRequestT) => Promise<VerifyResponseT>;
-		getProfile: (accountId?: AccountId) => Promise<ProfileResponseT>;
+		nonce: (params: NonceRequestT) => Promise<BetterFetchResponse<NonceResponseT>>;
+		verify: (params: VerifyRequestT) => Promise<BetterFetchResponse<VerifyResponseT>>;
+		getProfile: (accountId?: AccountId) => Promise<BetterFetchResponse<ProfileResponseT>>;
 	};
 	signIn: {
-		near: (params?: { recipient?: string }, callbacks?: AuthCallbacks) => Promise<VerifyResponseT>;
+		near: (params: { recipient: string, signer: Signer }, callbacks?: AuthCallbacks) => Promise<VerifyResponseT>;
 	};
 }
 
@@ -43,23 +42,33 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 		getActions: ($fetch): SIWNClientActions => {
 			return {
 				near: {
-					nonce: async (params: NonceRequestT): Promise<NonceResponseT> => {
-						return $fetch("/near/nonce", { method: "POST", body: params });
+					nonce: async (params: NonceRequestT, fetchOptions?: BetterFetchOption): Promise<BetterFetchResponse<NonceResponseT>> => {
+						return await $fetch("/near/nonce", {
+							method: "POST",
+							body: params,
+							...fetchOptions
+						});
 					},
-					verify: async (params: VerifyRequestT): Promise<VerifyResponseT> => {
-						return $fetch("/near/verify", { method: "POST", body: params });
+					verify: async (params: VerifyRequestT, fetchOptions?: BetterFetchOption): Promise<BetterFetchResponse<VerifyResponseT>> => {
+						return await $fetch("/near/verify", {
+							method: "POST",
+							body: params,
+							...fetchOptions
+						});
 					},
-					getProfile: async (accountId?: AccountId): Promise<ProfileResponseT> => {
-						return $fetch("/near/profile", {
+					getProfile: async (accountId?: AccountId, fetchOptions?: BetterFetchOption): Promise<BetterFetchResponse<ProfileResponseT>> => {
+						return await $fetch("/near/profile", {
 							method: "POST",
 							body: { accountId },
+							...fetchOptions
 						});
+
 					},
 				},
 				signIn: {
-					near: async (params: { recipient?: string } = {}, callbacks?: AuthCallbacks): Promise<VerifyResponseT> => {
+					near: async (params: { recipient: string, signer: Signer }, callbacks?: AuthCallbacks): Promise<VerifyResponseT> => {
 						try {
-							const { signer } = config;
+							const { signer, recipient } = params;
 
 							if (!signer) {
 								throw new Error("NEAR signer not available");
@@ -71,21 +80,19 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 								throw new Error("Wallet not connected. Please connect your wallet first.");
 							}
 
-							const recipient = params.recipient || config.domain;
-
 							// Get nonce for signature
-							const nonceResponse = await $fetch("/near/nonce", {
+							const nonceResponse: BetterFetchResponse<NonceResponseT> = await $fetch("/near/nonce", {
 								method: "POST",
 								body: { accountId }
-							}) as { data: NonceResponseT };
+							});
 
 							const nonce = nonceResponse?.data?.nonce;
 							const message = `Sign in to ${recipient}\n\nAccount ID: ${accountId}\nNonce: ${nonce}`;
 
 							// Convert base64 nonce to Uint8Array for signing
-							const nonceBytes = base64ToBytes(nonce);
+							const nonceBytes = base64ToBytes(nonce!);
 
-							// Use near-sign-verify with the signer
+							// Sign message
 							const authToken = await sign(message, {
 								signer,
 								recipient,
@@ -93,21 +100,18 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 							});
 
 							// Verify signature with backend
-							const verifyResponse = await $fetch("/near/verify", {
+							const verifyResponse: BetterFetchResponse<VerifyResponseT> = await $fetch("/near/verify", {
 								method: "POST",
 								body: {
 									authToken,
 									accountId,
 								}
-							}) as { data: VerifyResponseT };
-
-							console.log("verifyResponse", verifyResponse);
+							});
 
 							if (!verifyResponse?.data?.success) {
 								throw new Error("Authentication verification failed");
 							}
 
-							// Success!
 							callbacks?.onSuccess?.();
 							return verifyResponse.data;
 

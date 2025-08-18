@@ -54,9 +54,7 @@ export const VerifyResponse = z.object({
 		network: z.union([z.literal("mainnet"), z.literal("testnet")]),
 	}),
 });
-export const ProfileResponse = z.object({
-	profile: profileSchema.nullable(),
-});
+export const ProfileResponse = profileSchema.nullable();
 
 export type NonceRequestT = z.infer<typeof NonceRequest>;
 export type NonceResponseT = z.infer<typeof NonceResponse>;

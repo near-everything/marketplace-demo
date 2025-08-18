@@ -1,14 +1,14 @@
-import { bytesToBase64, toBase64 } from "@fastnear/utils";
-import { APIError, createAuthEndpoint } from "better-auth/api";
+import { bytesToBase64 } from "@fastnear/utils";
+import { APIError, createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import type { BetterAuthPlugin, User } from "better-auth/types";
 import { generateNonce, verify, type VerificationResult, type VerifyOptions } from "near-sign-verify";
+import { defaultGetProfile, getImageUrl, getNetworkFromAccountId } from "./profile";
 import { schema } from "./schema";
 import type {
 	AccountId,
 	NearAccount,
-	Profile,
-	SocialImage
+	Profile
 } from "./types";
 import {
 	NonceRequest,
@@ -27,70 +27,9 @@ function getOrigin(baseURL: string): string {
 	}
 }
 
-function getNetworkFromAccountId(accountId: string): "mainnet" | "testnet" {
-	return accountId.endsWith('.testnet') ? 'testnet' : 'mainnet';
-}
-
-const FALLBACK_URL =
-	"https://ipfs.near.social/ipfs/bafkreidn5fb2oygegqaldx7ycdmhu4owcrmoxd7ekbzfmeakkobz2ja7qy";
-
-function getImageUrl(
-	image: SocialImage | undefined,
-	fallback?: string,
-): string {
-	if (image?.url) return image.url;
-	if (image?.ipfs_cid) return `https://ipfs.near.social/ipfs/${image.ipfs_cid}`;
-	return fallback || FALLBACK_URL;
-}
-
-interface SocialApiResponse {
-	[accountId: string]: {
-		profile?: Profile;
-	};
-}
-
-async function defaultGetProfile(accountId: AccountId): Promise<Profile | null> {
-	const network = getNetworkFromAccountId(accountId);
-	const apiBase = {
-		mainnet: "https://api.near.social",
-		testnet: "https://test.api.near.social",
-	}[network];
-
-	const keys = [`${accountId}/profile/**`];
-
-	try {
-		const response = await fetch(`${apiBase}/get`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ keys })
-		});
-
-		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
-		}
-
-		const data = await response.json() as SocialApiResponse;
-		const profile: Profile | undefined = data?.[accountId]?.profile;
-
-		if (profile) {
-			return {
-				name: profile.name,
-				description: profile.description,
-				image: profile.image,
-				backgroundImage: profile.backgroundImage,
-				linktree: profile.linktree
-			};
-		}
-		return null;
-	} catch (error) {
-		return null;
-	}
-}
-
-
 export type SIWNPluginOptions =
 	| {
-		domain: string;
+		recipient: string;
 		anonymous?: true;
 		emailDomainName?: string;
 		requireFullAccessKey?: boolean;
@@ -106,7 +45,7 @@ export type SIWNPluginOptions =
 		}) => Promise<boolean>;
 	}
 	| {
-		domain: string;
+		recipient: string;
 		anonymous: false;
 		emailDomainName?: string;
 		requireFullAccessKey?: boolean;
@@ -155,6 +94,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 				{
 					method: "POST",
 					body: ProfileRequest,
+					use: [sessionMiddleware],
 				},
 				async (ctx) => {
 					const { accountId } = ctx.body;
@@ -188,7 +128,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 					}
 
 					const profile = await (options.getProfile || defaultGetProfile)(targetAccountId);
-					return ctx.json(ProfileResponse.parse({ profile }));
+					return ctx.json(ProfileResponse.parse(profile));
 				},
 			),
 			verifySiwnMessage: createAuthEndpoint(
@@ -209,7 +149,6 @@ export const siwn = (options: SIWNPluginOptions) =>
 					} = ctx.body;
 					const network = getNetworkFromAccountId(accountId);
 					const isAnon = options.anonymous ?? true;
-					const requireFullAccess = options.requireFullAccessKey ?? true;
 
 					if (!isAnon && !email) {
 						throw new APIError("BAD_REQUEST", {
@@ -233,15 +172,15 @@ export const siwn = (options: SIWNPluginOptions) =>
 						}
 
 						// Build verify options using plugin configuration
-						const requireFullAccess = options.requireFullAccessKey ?? true;
+						const requireFullAccessKey = options.requireFullAccessKey ?? true;
 						const verifyOptions: VerifyOptions = {
-							requireFullAccessKey: requireFullAccess,
+							requireFullAccessKey: requireFullAccessKey,
 							...(options.validateNonce
 								? { validateNonce: options.validateNonce }
 								: { nonceMaxAge: 15 * 60 * 1000 }),
 							...(options.validateRecipient
 								? { validateRecipient: options.validateRecipient }
-								: { expectedRecipient: options.domain }),
+								: { expectedRecipient: options.recipient }),
 							...(options.validateMessage ? { validateMessage: options.validateMessage } : {}),
 						} as VerifyOptions;
 
@@ -255,7 +194,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 							});
 						}
 
-						if (!requireFullAccess && options.validateFunctionCallKey) {
+						if (!options.requireFullAccessKey && options.validateFunctionCallKey) {
 							const isValidFunctionKey = await options.validateFunctionCallKey({
 								accountId: result.accountId,
 								publicKey: result.publicKey,
@@ -410,6 +349,3 @@ export const siwn = (options: SIWNPluginOptions) =>
 			),
 		},
 	}) satisfies BetterAuthPlugin;
-
-export { defaultGetProfile, getNetworkFromAccountId };
-
