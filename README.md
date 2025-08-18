@@ -85,11 +85,11 @@ Access user profiles from NEAR Social automatically:
 
 ```ts title="profile-usage.ts"
 // Get current user's profile (requires authentication)
-const { data: myProfile } = await authClient.near.getProfile();
+const myProfile = await authClient.near.getProfile();
 console.log("My profile:", myProfile);
 
 // Get specific user's profile (no auth required)
-const { data: aliceProfile } = await authClient.near.getProfile("alice.near");
+const aliceProfile = await authClient.near.getProfile("alice.near");
 console.log("Alice's profile:", aliceProfile);
 ```
 
