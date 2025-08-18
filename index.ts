@@ -1,4 +1,4 @@
-export { siwn, getNetworkFromAccountId, defaultGetProfile } from "./src/near/index";
+export { siwn } from "./src/near/index";
 export { siwnClient } from "./src/near/client";
 export type {
 	AccountId,
@@ -15,7 +15,6 @@ export type {
 export { accountIdSchema } from "./src/near/types";
 export type { SIWNPluginOptions } from "./src/near/index";
 export type {
-	NearAuthSigner,
 	AuthCallbacks,
 	SIWNClientConfig,
 	SIWNClientActions,
