@@ -30,6 +30,9 @@ npm install better-near-auth
     import { siwn } from "better-near-auth";
 
     export const auth = betterAuth({
+        database: drizzleAdapter(db, {
+          // db configuration
+        }),
         plugins: [
             siwn({
                 recipient: "myapp.com",
@@ -39,7 +42,7 @@ npm install better-near-auth
     });
     ```
 
-3. Migrate the database. Run the migration or generate the schema to add the necessary fields and tables to the database.
+3. Generate the schema to add the necessary fields and tables to the database.
 
   ```bash
   npx @better-auth/cli generate
