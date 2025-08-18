@@ -1,5 +1,5 @@
-export { siwn } from "./src/near/index";
-export { siwnClient } from "./src/near/client";
+export { siwn } from "./src/index";
+export { siwnClient } from "./src/client";
 export type {
 	AccountId,
 	NearAccount,
@@ -11,12 +11,12 @@ export type {
 	VerifyResponseT,
 	ProfileRequestT,
 	ProfileResponseT,
-} from "./src/near/types";
-export { accountIdSchema } from "./src/near/types";
-export type { SIWNPluginOptions } from "./src/near/index";
+} from "./src/types";
+export { accountIdSchema } from "./src/types";
+export type { SIWNPluginOptions } from "./src/index";
 export type {
 	AuthCallbacks,
 	SIWNClientConfig,
 	SIWNClientActions,
 	SIWNClientPlugin,
-} from "./src/near/client";
+} from "./src/client";
