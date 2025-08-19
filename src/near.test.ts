@@ -156,7 +156,7 @@
 // 						async verifyMessage({ authToken, expectedRecipient, accountId }) {
 // 							return authToken === "valid_token" && expectedRecipient === domain;
 // 						},
-// 						async validateFunctionCallKey({ accountId, publicKey }) {
+// 						async validateLimitedAccessKey({ accountId, publicKey }) {
 // 							return accountId === "test.near" && publicKey !== "";
 // 						},
 // 					}),

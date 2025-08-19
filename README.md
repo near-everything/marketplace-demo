@@ -111,7 +111,7 @@ The SIWN plugin accepts the following configuration options:
 * **validateRecipient**: Function to validate recipients. Optional, uses exact match by default
 * **validateMessage**: Function to validate messages. Optional, no validation by default
 * **getProfile**: Function to fetch user profiles. Optional, uses NEAR Social by default
-* **validateFunctionCallKey**: Function to validate function call access keys when `requireFullAccessKey` is false
+* **validateLimitedAccessKey**: Function to validate function call access keys when `requireFullAccessKey` is false
 
 ### Client Options
 
@@ -166,7 +166,6 @@ export const auth = betterAuth({
       // Optional: Custom profile lookup
       getProfile: async (accountId) => {
         // Custom profile logic, falls back to NEAR Social
-        return null; // Use default NEAR Social lookup
       },
     }),
   ],
@@ -296,7 +295,7 @@ export const auth = betterAuth({
       },
       
       // Validate function call keys against allowed contracts
-      validateFunctionCallKey: async ({ accountId, publicKey, contractId }) => {
+      validateLimitedAccessKey: async ({ accountId, publicKey, contractId }) => {
         const allowedContracts = ["myapp.near", "social.near"];
         return contractId ? allowedContracts.includes(contractId) : true;
       },

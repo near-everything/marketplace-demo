@@ -38,10 +38,10 @@ export type SIWNPluginOptions =
 		validateRecipient?: (recipient: string) => boolean;
 		validateMessage?: (message: string) => boolean;
 		getProfile?: (accountId: AccountId) => Promise<Profile | null>;
-		validateFunctionCallKey?: (args: {
+		validateLimitedAccessKey?: (args: {
 			accountId: AccountId;
 			publicKey: string;
-			contractId?: string;
+			recipient?: string;
 		}) => Promise<boolean>;
 	}
 	| {
@@ -54,10 +54,10 @@ export type SIWNPluginOptions =
 		validateRecipient?: (recipient: string) => boolean;
 		validateMessage?: (message: string) => boolean;
 		getProfile?: (accountId: AccountId) => Promise<Profile | null>;
-		validateFunctionCallKey?: (args: {
+		validateLimitedAccessKey?: (args: {
 			accountId: AccountId;
 			publicKey: string;
-			contractId?: string;
+			recipient: string;
 		}) => Promise<boolean>;
 	};
 
@@ -194,13 +194,14 @@ export const siwn = (options: SIWNPluginOptions) =>
 							});
 						}
 
-						if (!options.requireFullAccessKey && options.validateFunctionCallKey) {
-							const isValidFunctionKey = await options.validateFunctionCallKey({
+						if (!options.requireFullAccessKey && options.validateLimitedAccessKey) {
+							const isValidKey = await options.validateLimitedAccessKey({
 								accountId: result.accountId,
 								publicKey: result.publicKey,
-							}); // we can validate against an access control contract
+								recipient: options.recipient
+							}); // we could validate against some access control contract
 
-							if (!isValidFunctionKey) {
+							if (!isValidKey) {
 								throw new APIError("UNAUTHORIZED", {
 									message: "Unauthorized: Invalid function call access key",
 									status: 401,
