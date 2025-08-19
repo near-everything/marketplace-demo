@@ -1,17 +1,26 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createRouter, RouterProvider } from "@tanstack/react-router";
 import ReactDOM from "react-dom/client";
 import Loader from "./components/loader";
 import { routeTree } from "./routeTree.gen";
-
-const queryClient = new QueryClient();
+import { queryClient, trpc, trpcClient, TRPCProvider } from "./utils/trpc";
 
 const router = createRouter({
   routeTree,
+  scrollRestoration: true,
+  defaultPreloadStaleTime: 0,
   defaultPreload: "intent",
+  context: { trpc, queryClient },
   defaultPendingComponent: () => <Loader />,
-  context: {},
-  });
+  defaultNotFoundComponent: () => <div>Not Found</div>,
+  Wrap: ({ children }) => (
+    <QueryClientProvider client={queryClient}>
+      <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
+        {children}
+      </TRPCProvider>
+    </QueryClientProvider>
+  ),
+});
 
 declare module "@tanstack/react-router" {
   interface Register {
@@ -27,9 +36,5 @@ if (!rootElement) {
 
 if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  );
+  root.render(<RouterProvider router={router} />);
 }

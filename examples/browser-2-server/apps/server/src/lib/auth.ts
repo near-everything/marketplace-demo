@@ -26,7 +26,7 @@ export const auth = betterAuth({
   },
   advanced: {
     defaultCookieAttributes: {
-      sameSite: "none",
+      sameSite: "none", // need this to allow many clients
       secure: true,
       partitioned: true
     }

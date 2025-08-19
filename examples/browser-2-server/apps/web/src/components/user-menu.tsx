@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
+import NearProfile from "./near-profile";
 import * as fastintear from "fastintear";
 
 interface Profile {
@@ -82,17 +83,7 @@ export default function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="flex items-center space-x-2">
-          {avatarUrl && (
-            <img
-              src={avatarUrl}
-              alt="Profile"
-              className="h-5 w-5 rounded-full object-cover"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-              }}
-            />
-          )}
-          <span>{displayName}</span>
+          <NearProfile variant="badge" showAvatar={true} showName={true} />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="bg-card">
