@@ -21,8 +21,5 @@
   "devDependencies": {
     "turbo": "^2.5.4"
   },
-  "overrides": {
-    "better-call": "1.0.13"
-  },
   "packageManager": "bun@1.2.19"
 }

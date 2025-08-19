@@ -15,26 +15,30 @@ export default function Header() {
   ];
 
   return (
-    <div>
-      <div className="flex flex-row items-center justify-between px-2 py-1">
-        <nav className="flex gap-4 text-lg">
+    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center justify-between px-6">
+        <nav className="flex items-center gap-8">
           {links.map(({ to, label }) => {
             return (
-              <Link key={to} to={to}>
+              <Link 
+                key={to} 
+                to={to}
+                className="text-lg font-medium text-foreground/80 transition-colors hover:text-foreground [&.active]:text-foreground [&.active]:font-semibold"
+              >
                 {label}
               </Link>
             );
           })}
         </nav>
-        <div className="flex items-center gap-4">
-          {/* API Status Indicator */}
-          <div className="flex items-center gap-2">
+        
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
             <div
-              className={`h-2 w-2 rounded-full ${
-                healthCheck.data ? "bg-green-500" : "bg-red-500"
+              className={`h-2.5 w-2.5 rounded-full ${
+                healthCheck.data ? "bg-emerald-500" : "bg-red-500"
               }`}
             />
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-medium text-muted-foreground">
               {healthCheck.isLoading
                 ? "Checking..."
                 : healthCheck.data
@@ -46,7 +50,6 @@ export default function Header() {
           <UserMenu />
         </div>
       </div>
-      <hr />
-    </div>
+    </header>
   );
 }
