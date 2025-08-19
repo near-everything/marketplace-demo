@@ -59,33 +59,29 @@ export default function SignInForm() {
   const handleNearSignIn = async () => {
     setIsSigningInWithNear(true);
 
-    try {
-      await authClient.signIn.near(
-        {
-          recipient: "better-near-auth.near",
-          signer: window.near!,
+    await authClient.signIn.near(
+      {
+        recipient: "better-near-auth.near",
+        signer: window.near!,
+      },
+      {
+        onSuccess: () => {
+          setIsSigningInWithNear(false);
+          navigate({
+            to: search.redirect || "/dashboard",
+            replace: true,
+          });
+          toast.success(`Signed in as: ${accountId}`);
         },
-        {
-          onSuccess: () => {
-            navigate({
-              to: search.redirect || "/dashboard",
-							replace: true
-            });
-            toast.success(`Signed in as: ${accountId}`);
-          },
-          onError: (error) => {
-            console.error("NEAR sign in error:", error);
-            toast.error(
-              error instanceof Error ? error.message : "Authentication failed"
-            );
-          },
-        }
-      );
-    } catch (error) {
-      console.error("NEAR authentication error:", error);
-    } finally {
-      setIsSigningInWithNear(false);
-    }
+        onError: (error) => {
+          setIsSigningInWithNear(false);
+          console.error("NEAR sign in error:", error);
+          toast.error(
+            error instanceof Error ? error.message : "Authentication failed"
+          );
+        },
+      }
+    );
   };
 
   const handleWalletDisconnect = async () => {
@@ -125,29 +121,31 @@ export default function SignInForm() {
 
   return (
     <div className="w-full max-w-lg mx-auto">
-      <div className="bg-card border rounded-lg shadow-sm p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-semibold mb-4">Sign in with NEAR</h1>
-          <p className="text-lg text-muted-foreground">
+      <div className="bg-card border rounded-lg shadow-sm p-6 sm:p-8">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold mb-3 sm:mb-4">Sign in with NEAR</h1>
+          <p className="text-base sm:text-lg text-muted-foreground">
             Connect your NEAR wallet to authenticate securely
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {!accountId ? (
             <Button
               type="button"
-              className="w-full h-12 text-lg font-medium"
+              className="w-full h-12 sm:h-14 text-base sm:text-lg font-medium touch-manipulation"
               onClick={handleWalletConnect}
               disabled={isConnectingWallet}
             >
-              {isConnectingWallet ? "Connecting Wallet..." : "Connect NEAR Wallet"}
+              {isConnectingWallet
+                ? "Connecting Wallet..."
+                : "Connect NEAR Wallet"}
             </Button>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <Button
                 type="button"
-                className="w-full h-12 text-lg font-medium"
+                className="w-full h-12 sm:h-14 text-base sm:text-lg font-medium touch-manipulation"
                 onClick={handleNearSignIn}
                 disabled={isSigningInWithNear}
               >
@@ -158,18 +156,20 @@ export default function SignInForm() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full h-12 text-lg font-medium"
+                className="w-full h-12 sm:h-14 text-base sm:text-lg font-medium touch-manipulation"
                 onClick={handleWalletDisconnect}
                 disabled={isDisconnectingWallet}
               >
-                {isDisconnectingWallet ? "Disconnecting..." : "Disconnect Wallet"}
+                {isDisconnectingWallet
+                  ? "Disconnecting..."
+                  : "Disconnect Wallet"}
               </Button>
             </div>
           )}
         </div>
 
-        <div className="mt-8 text-center">
-          <p className="text-sm text-muted-foreground">
+        <div className="mt-6 sm:mt-8 text-center">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             This demo uses fastintear for wallet connectivity.
           </p>
         </div>

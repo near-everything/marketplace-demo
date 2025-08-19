@@ -7,13 +7,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
-import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 import NearProfile from "./near-profile";
-import * as fastintear from "fastintear";
 
 interface Profile {
   name?: string;
@@ -67,13 +65,12 @@ export default function UserMenu() {
 
   if (!session) {
     return (
-      <Button variant="outline" asChild>
+      <Button variant="outline" asChild className="min-h-9 min-w-[80px]">
         <Link to="/login">Sign In</Link>
       </Button>
     );
   }
 
-  const displayName = nearProfile?.name || session.user.name;
   const avatarUrl =
     nearProfile?.image?.url || nearProfile?.image?.ipfs_cid
       ? `https://ipfs.near.social/ipfs/${nearProfile.image.ipfs_cid}`
@@ -82,16 +79,16 @@ export default function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="flex items-center space-x-2">
+        <Button variant="outline" className="flex items-center space-x-2 min-h-9 touch-manipulation">
           <NearProfile variant="badge" showAvatar={true} showName={true} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="bg-card">
-        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+      <DropdownMenuContent className="bg-card w-56 mr-4">
+        <DropdownMenuLabel className="py-3">My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>{session.user.email}</DropdownMenuItem>
+        <DropdownMenuItem className="py-3 text-sm">{session.user.email}</DropdownMenuItem>
         {nearProfile && (
-          <DropdownMenuItem>
+          <DropdownMenuItem className="py-3">
             <div className="flex items-center space-x-2">
               {avatarUrl && (
                 <img
@@ -109,7 +106,7 @@ export default function UserMenu() {
         <DropdownMenuItem asChild>
           <Button
             variant="destructive"
-            className="w-full"
+            className="w-full min-h-10 touch-manipulation my-2"
             onClick={async () => {
               try {
                 // Sign out from auth session
