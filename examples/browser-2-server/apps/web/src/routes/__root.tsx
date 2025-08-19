@@ -31,6 +31,24 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
         href: "/favicon.ico",
       },
     ],
+    scripts: [
+      {
+        src: "https://unpkg.com/fastintear@latest/dist/umd/browser.global.js",
+        type: "text/javascript",
+      },
+      {
+        children: `
+      window.near && window.near.config({ networkId: "mainnet" });
+      
+      if (typeof window.near !== "undefined") {
+        console.log("NEAR (via global object 'near') is ready!");
+      } else {
+        console.error("NEAR global object 'near' not found!");
+      }
+    `,
+        type: "text/javascript",
+      },
+    ],
   }),
 });
 
@@ -38,7 +56,6 @@ function RootComponent() {
   const isFetching = useRouterState({
     select: (s) => s.isLoading,
   });
-
 
   return (
     <>
