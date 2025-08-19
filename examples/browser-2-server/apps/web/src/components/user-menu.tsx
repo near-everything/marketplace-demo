@@ -7,11 +7,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
-import { Link } from "@tanstack/react-router";
+import * as fastintear from "fastintear";
 
 interface Profile {
   name?: string;
@@ -29,27 +30,37 @@ interface Profile {
 
 export default function UserMenu() {
   const navigate = useNavigate();
-  const { data: session, isPending } = authClient.useSession();
+  const [session, setSession] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [nearProfile, setNearProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    if (!session) return;
-
-    const fetchProfile = async () => {
+    const fetchSessionAndProfile = async () => {
       try {
-        const response = await authClient.near.getProfile();
-        console.log("My profile:", response);
-        setNearProfile(response.data);
-      } catch (err) {
-        console.log("No NEAR profile found for user");
-        setNearProfile(null);
+        const { data: sessionData } = await authClient.getSession();
+        setSession(sessionData);
+        
+        if (sessionData) {
+          try {
+            const { data: response } = await authClient.near.getProfile();
+            setNearProfile(response);
+          } catch (err) {
+            console.log("No NEAR profile found for user");
+            setNearProfile(null);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch session:", error);
+        setSession(null);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchProfile();
-  }, [session]);
+    fetchSessionAndProfile();
+  }, []);
 
-  if (isPending) {
+  if (isLoading) {
     return <Skeleton className="h-9 w-24" />;
   }
 
@@ -62,21 +73,22 @@ export default function UserMenu() {
   }
 
   const displayName = nearProfile?.name || session.user.name;
-  const avatarUrl = nearProfile?.image?.url || nearProfile?.image?.ipfs_cid 
-    ? `https://ipfs.near.social/ipfs/${nearProfile.image.ipfs_cid}` 
-    : null;
+  const avatarUrl =
+    nearProfile?.image?.url || nearProfile?.image?.ipfs_cid
+      ? `https://ipfs.near.social/ipfs/${nearProfile.image.ipfs_cid}`
+      : null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="flex items-center space-x-2">
           {avatarUrl && (
-            <img 
-              src={avatarUrl} 
-              alt="Profile" 
+            <img
+              src={avatarUrl}
+              alt="Profile"
               className="h-5 w-5 rounded-full object-cover"
               onError={(e) => {
-                e.currentTarget.style.display = 'none';
+                e.currentTarget.style.display = "none";
               }}
             />
           )}
@@ -91,9 +103,9 @@ export default function UserMenu() {
           <DropdownMenuItem>
             <div className="flex items-center space-x-2">
               {avatarUrl && (
-                <img 
-                  src={avatarUrl} 
-                  alt="NEAR Profile" 
+                <img
+                  src={avatarUrl}
+                  alt="NEAR Profile"
                   className="h-4 w-4 rounded-full object-cover"
                 />
               )}
@@ -107,16 +119,25 @@ export default function UserMenu() {
           <Button
             variant="destructive"
             className="w-full"
-            onClick={() => {
-              authClient.signOut({
-                fetchOptions: {
-                  onSuccess: () => {
-                    navigate({
-                      to: "/",
-                    });
+            onClick={async () => {
+              try {
+                // Sign out from auth session
+                await authClient.signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      navigate({
+                        to: "/",
+                      });
+                    },
                   },
-                },
-              });
+                });
+              } catch (error) {
+                console.error("Sign out error:", error);
+                // Still navigate even if wallet disconnect fails
+                navigate({
+                  to: "/",
+                });
+              }
             }}
           >
             Sign Out

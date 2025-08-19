@@ -21,8 +21,6 @@ export default function NearProfile({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!accountId) return;
-
     const fetchProfile = async () => {
       setIsLoading(true);
       setError(null);
@@ -40,8 +38,6 @@ export default function NearProfile({
 
     fetchProfile();
   }, [accountId]);
-
-  if (!accountId) return null;
 
   if (isLoading) {
     return (
@@ -81,7 +77,7 @@ export default function NearProfile({
             />
           ) : (
             <div className="h-full w-full flex items-center justify-center text-xs font-medium text-gray-600">
-              {displayName.charAt(0).toUpperCase()}
+              {displayName?.charAt(0).toUpperCase()}
             </div>
           )}
         </div>

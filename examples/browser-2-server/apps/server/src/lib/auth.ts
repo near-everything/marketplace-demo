@@ -24,4 +24,11 @@ export const auth = betterAuth({
       maxAge: 5 * 60 // 5 minutes cache - reduces DB hits
     }
   },
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: "none",
+      secure: true,
+      partitioned: true
+    }
+  }
 });
