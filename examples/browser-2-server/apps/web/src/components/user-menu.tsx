@@ -86,7 +86,7 @@ export default function UserMenu() {
       <DropdownMenuContent className="bg-card w-56 mr-4">
         <DropdownMenuLabel className="py-3">My Account</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="py-3 text-sm">{session.user.email}</DropdownMenuItem>
+        <DropdownMenuItem className="py-3 text-sm">{session.user.name}</DropdownMenuItem>
         {nearProfile && (
           <DropdownMenuItem className="py-3">
             <div className="flex items-center space-x-2">
