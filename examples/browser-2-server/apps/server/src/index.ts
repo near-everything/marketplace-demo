@@ -6,6 +6,8 @@ import { logger } from "hono/logger";
 import { auth } from "./lib/auth";
 import { createContext } from "./lib/context";
 import { appRouter } from "./routers";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { db } from "./db";
 
 const app = new Hono();
 
@@ -31,5 +33,16 @@ app.use(
     },
   })
 );
+
+
+try {
+  console.log("Migrating database...");
+  migrate(db, {
+    migrationsFolder: `${process.cwd()}/db/migrations`,
+  });
+} catch (error) {
+  console.error(error);
+}
+
 
 export default app;
