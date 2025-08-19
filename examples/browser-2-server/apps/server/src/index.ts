@@ -37,7 +37,7 @@ app.use(
 try {
   console.log("Migrating database...");
   migrate(db, {
-    migrationsFolder: `${process.cwd()}/db/migrations`,
+    migrationsFolder: `${process.cwd()}/migrations`,
   });
 } catch (error) {
   console.error(error);
