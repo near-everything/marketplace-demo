@@ -40,10 +40,10 @@
         "@trpc/client": "^11.4.4",
         "@trpc/tanstack-react-query": "^11.4.4",
         "better-auth": "^1.3.7",
-        "better-near-auth": "link:better-near-auth",
+        "better-near-auth": "^0.1.3",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
-        "fastintear": "link:fastintear",
+        "fastintear": "^0.2.4",
         "lucide-react": "^0.540.0",
         "next-themes": "^0.4.6",
         "radix-ui": "^1.4.3",
@@ -687,7 +687,7 @@
 
     "extend": ["extend@3.0.2", "", {}, "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g=="],
 
-    "fastintear": ["fastintear@link:fastintear", {}],
+    "fastintear": ["fastintear@0.2.4", "", { "dependencies": { "@fastnear/utils": "^0.9.7", "@noble/curves": "*", "@noble/hashes": "*", "base58-js": "*", "big.js": "*", "borsh": "*" } }, "sha512-BR7gykxdOZdAegE/swbIL/kZdOUcaUOMXY9izyrzvEXkLI9Jh6bX055EPx6DLmpUxIuOcEG4jXVXeZxQ42Mnlg=="],
 
     "fdir": ["fdir@6.5.0", "", { "peerDependencies": { "picomatch": "^3 || ^4" }, "optionalPeers": ["picomatch"] }, "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg=="],
 
@@ -1153,7 +1153,7 @@
 
     "source-map-support/source-map": ["source-map@0.6.1", "", {}, "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g=="],
 
-    "web/better-near-auth": ["better-near-auth@link:better-near-auth", {}],
+    "web/better-near-auth": ["better-near-auth@0.1.3", "", { "dependencies": { "@better-auth/utils": "^0.2.6", "@fastnear/utils": "^0.9.7", "fastintear": "link:fastintear", "nanostores": "^1.0.1", "near-sign-verify": "^0.4.3", "zod": "^4.0.17" }, "peerDependencies": { "better-auth": "^1.0.0", "typescript": "^5.0.0" } }, "sha512-k8pb2EU9mT+FWUHJAKjTNSqpKnfyr61RZor4sgEneeGygU56VddWWqnKw1FZcUFpS5WJuisMtZOOo+O3Kno9Hg=="],
 
     "@esbuild-kit/core-utils/esbuild/@esbuild/android-arm": ["@esbuild/android-arm@0.18.20", "", { "os": "android", "cpu": "arm" }, "sha512-fyi7TDI/ijKKNZTUJAQqiG5T7YjJXgnzkURqmGj13C6dCqckZBLdl4h7bkhHt/t0WP+zO9/zwroDvANaOqO5Sw=="],
 
@@ -1200,6 +1200,10 @@
     "@esbuild-kit/core-utils/esbuild/@esbuild/win32-x64": ["@esbuild/win32-x64@0.18.20", "", { "os": "win32", "cpu": "x64" }, "sha512-kTdfRcSiDfQca/y9QIkng02avJ+NCaQvrMejlsB3RRv5sE9rRoeBPISaZpKxHELzRxZyLvNts1P27W3wV+8geQ=="],
 
     "@tanstack/router-plugin/chokidar/readdirp": ["readdirp@3.6.0", "", { "dependencies": { "picomatch": "^2.2.1" } }, "sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA=="],
+
+    "web/better-near-auth/fastintear": ["fastintear@link:fastintear", {}],
+
+    "web/better-near-auth/nanostores": ["nanostores@1.0.1", "", {}, "sha512-kNZ9xnoJYKg/AfxjrVL4SS0fKX++4awQReGqWnwTRHxeHGZ1FJFVgTqr/eMrNQdp0Tz7M7tG/TDaX8QfHDwVCw=="],
 
     "@tanstack/router-plugin/chokidar/readdirp/picomatch": ["picomatch@2.3.1", "", {}, "sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA=="],
   }
