@@ -89,7 +89,7 @@ export const siwn = (options: SIWNPluginOptions) =>
 					const nonceString = bytesToBase64(nonce);
 
 					await ctx.context.internalAdapter.createVerificationValue({
-						identifier: `siwn:${accountId}:${network}:${publicKey}`,
+						identifier: `siwn:${accountId}:${network}`,
 						value: nonceString!,
 						expiresAt: new Date(Date.now() + 15 * 60 * 1000),
 					});
@@ -166,11 +166,9 @@ export const siwn = (options: SIWNPluginOptions) =>
 					}
 
 					try {
-						const { publicKey } = parseAuthToken(authToken);
-
 						const verification =
 							await ctx.context.internalAdapter.findVerificationValue(
-								`siwn:${accountId}:${network}:${publicKey}`,
+								`siwn:${accountId}:${network}`,
 							);
 
 						if (!verification || new Date() > verification.expiresAt) {

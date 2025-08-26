@@ -63,6 +63,13 @@ export default function SignInForm() {
           onError: (error) => {
             setIsSigningInWithNear(false);
             console.error("NEAR sign in error:", error);
+            
+            if ((error as any)?.code === "NONCE_NOT_FOUND") {
+              toast.error("Session expired. Please reconnect your wallet.");
+              handleWalletDisconnect();
+              return;
+            }
+            
             toast.error(
               error instanceof Error ? error.message : "Authentication failed"
             );
@@ -72,6 +79,13 @@ export default function SignInForm() {
     } catch (error) {
       setIsSigningInWithNear(false);
       console.error("NEAR sign in error:", error);
+      
+      if ((error as any)?.code === "NONCE_NOT_FOUND") {
+        toast.error("Session expired. Please reconnect your wallet.");
+        handleWalletDisconnect();
+        return;
+      }
+      
       toast.error("Authentication failed");
     }
   };
