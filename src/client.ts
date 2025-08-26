@@ -1,17 +1,10 @@
 import { base64ToBytes } from "@fastnear/utils";
 import type { BetterAuthClientPlugin, BetterFetch, BetterFetchOption, BetterFetchResponse } from "better-auth/client";
-// TODO: tree shaking, browser vs node
-import * as fastintear from "fastintear";
+import { createNearClient } from "fastintear";
 import { atom } from "nanostores";
-import { sign, type WalletInterface } from "near-sign-verify";
-import { siwn } from ".";
+import { sign } from "near-sign-verify";
+import type { siwn } from ".";
 import { type AccountId, type NonceRequestT, type NonceResponseT, type ProfileResponseT, type VerifyRequestT, type VerifyResponseT } from "./types";
-
-export interface Signer {
-	accountId(): string | null;
-	signMessage: WalletInterface["signMessage"];
-	requestSignIn: typeof fastintear.requestSignIn
-}
 
 export interface AuthCallbacks {
 	onSuccess?: () => void;
@@ -37,7 +30,7 @@ export interface SIWNClientActions {
 		nonce: (params: NonceRequestT) => Promise<BetterFetchResponse<NonceResponseT>>;
 		verify: (params: VerifyRequestT) => Promise<BetterFetchResponse<VerifyResponseT>>;
 		getProfile: (accountId?: AccountId) => Promise<BetterFetchResponse<ProfileResponseT>>;
-		getNearClient: () => ReturnType<typeof fastintear.createNearClient>;
+		getNearClient: () => ReturnType<typeof createNearClient>;
 		getAccountId: () => string | null;
 		disconnect: () => Promise<void>;
 	};
@@ -57,7 +50,7 @@ export interface SIWNClientPlugin extends BetterAuthClientPlugin {
 
 export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 	// Create embedded NEAR client
-	const nearClient = fastintear.createNearClient({
+	const nearClient = createNearClient({
 		networkId: config.networkId || "mainnet"
 	});
 
