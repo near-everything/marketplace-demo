@@ -37,7 +37,7 @@ export type Profile = z.infer<typeof profileSchema>;
 export const NonceRequest = z.object({
 	accountId: accountIdSchema,
 	publicKey: z.string(),
-	networkId: z.string() // TODO: enum
+	networkId: z.union([z.literal("mainnet"), z.literal("testnet")])
 });
 export const VerifyRequest = z.object({
 	authToken: z.string().min(1),

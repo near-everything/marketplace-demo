@@ -2,7 +2,7 @@ import { bytesToBase64 } from "@fastnear/utils";
 import { APIError, createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import type { BetterAuthPlugin, User } from "better-auth/types";
-import { generateNonce, verify, type VerificationResult, type VerifyOptions } from "near-sign-verify";
+import { generateNonce, parseAuthToken, verify, type VerificationResult, type VerifyOptions } from "near-sign-verify";
 import { defaultGetProfile, getImageUrl, getNetworkFromAccountId } from "./profile";
 import { schema } from "./schema";
 import type {
@@ -166,9 +166,11 @@ export const siwn = (options: SIWNPluginOptions) =>
 					}
 
 					try {
+						const { publicKey } = parseAuthToken(authToken);
+
 						const verification =
 							await ctx.context.internalAdapter.findVerificationValue(
-								`siwn:${accountId}:${network}`,
+								`siwn:${accountId}:${network}:${publicKey}`,
 							);
 
 						if (!verification || new Date() > verification.expiresAt) {

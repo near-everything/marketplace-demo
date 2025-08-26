@@ -55,20 +55,41 @@ npm install better-near-auth
     import { siwnClient } from "better-near-auth/client";
 
     export const authClient = createAuthClient({
-        plugins: [siwnClient()],
+        plugins: [
+            siwnClient({
+                domain: "myapp.com", // this doesn't actually do anything yet... taking suggestions
+                networkId: "mainnet", // optional, default is "mainnet"
+            })
+        ],
     });
     ```
 
-
 ## Usage
 
-### One-Line Authentication
+### Two-Step Authentication Flow
 
-The simplest way to authenticate with NEAR:
+The plugin uses a secure two-step authentication process:
 
-```ts title="sign-in-near.ts"
-const response = await authClient.signIn.near(
-  { recipient: "myapp.com", signer: window.near },
+1. **Step 1**: Connect wallet and cache nonce
+2. **Step 2**: Sign message and authenticate
+
+```ts title="two-step-auth.ts"
+// Step 1: Connect wallet and get nonce
+await authClient.requestSignIn.near(
+  { recipient: "myapp.com" },
+  {
+    onSuccess: () => {
+      console.log("Wallet connected, nonce cached!");
+    },
+    onError: (error) => {
+      console.error("Wallet connection failed:", error.message);
+    }
+  }
+);
+
+// Step 2: Sign message and authenticate
+await authClient.signIn.near(
+  { recipient: "myapp.com" },
   {
     onSuccess: () => {
       console.log("Successfully signed in!");
@@ -78,8 +99,91 @@ const response = await authClient.signIn.near(
     }
   }
 );
+```
 
-console.log("Signed in as:", response.user.accountId);
+### Complete React Component Example
+
+```tsx title="LoginButton.tsx"
+import { authClient } from "./auth-client";
+import { useState } from "react";
+
+export function LoginButton() {
+  const { data: session } = authClient.useSession();
+  const [isConnectingWallet, setIsConnectingWallet] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  
+  // Get account ID from embedded fastintear client
+  const accountId = authClient.near.getAccountId();
+
+  if (session) {
+    return (
+      <div>
+        <p>Welcome, {session.user.name}!</p>
+        <button onClick={() => authClient.signOut()}>Sign out</button>
+      </div>
+    );
+  }
+
+  const handleWalletConnect = async () => {
+    setIsConnectingWallet(true);
+    
+    try {
+      await authClient.requestSignIn.near(
+        { recipient: "myapp.com" },
+        {
+          onSuccess: () => {
+            setIsConnectingWallet(false);
+            console.log("Wallet connected!");
+          },
+          onError: (error) => {
+            setIsConnectingWallet(false);
+            console.error("Wallet connection failed:", error.message);
+          },
+        }
+      );
+    } catch (error) {
+      setIsConnectingWallet(false);
+      console.error("Authentication error:", error);
+    }
+  };
+
+  const handleSignIn = async () => {
+    setIsSigningIn(true);
+    
+    try {
+      await authClient.signIn.near(
+        { recipient: "myapp.com" },
+        {
+          onSuccess: () => {
+            setIsSigningIn(false);
+            console.log("Successfully signed in!");
+          },
+          onError: (error) => {
+            setIsSigningIn(false);
+            console.error("Sign in failed:", error.message);
+          },
+        }
+      );
+    } catch (error) {
+      setIsSigningIn(false);
+      console.error("Authentication error:", error);
+    }
+  };
+
+  return (
+    <div>
+      {!accountId ? (
+        <button onClick={handleWalletConnect} disabled={isConnectingWallet}>
+          {isConnectingWallet ? "Connecting..." : "Connect NEAR Wallet"}
+        </button>
+      ) : (
+        <button onClick={handleSignIn} disabled={isSigningIn}>
+          {isSigningIn ? "Signing in..." : `Sign in with NEAR (${accountId})`}
+        </button>
+      )}
+    </div>
+  );
+}
 ```
 
 ### Profile Access
@@ -94,6 +198,20 @@ console.log("My profile:", myProfile);
 // Get specific user's profile (no auth required)
 const aliceProfile = await authClient.near.getProfile("alice.near");
 console.log("Alice's profile:", aliceProfile);
+```
+
+### Wallet Management
+
+```ts title="wallet-management.ts"
+// Check if wallet is connected
+const accountId = authClient.near.getAccountId();
+console.log("Connected account:", accountId);
+
+// Get the embedded NEAR client
+const nearClient = authClient.near.getNearClient();
+
+// Disconnect wallet and clear cached data
+await authClient.near.disconnect();
 ```
 
 ## Configuration Options
@@ -115,7 +233,10 @@ The SIWN plugin accepts the following configuration options:
 
 ### Client Options
 
-The SIWN client plugin doesn't require any configuration options:
+The SIWN client plugin accepts the following configuration options:
+
+* **domain**: Domain identifier... idk what it should do yet. Maybe shade agent.
+* **networkId**: NEAR network to use ("mainnet" or "testnet"). Default is "mainnet"
 
 ```ts title="auth-client.ts"
 import { createAuthClient } from "better-auth/client";
@@ -124,7 +245,8 @@ import { siwnClient } from "better-near-auth/client";
 export const authClient = createAuthClient({
   plugins: [
     siwnClient({
-      // Optional client configuration can go here
+      domain: "myapp.com",
+      networkId: "testnet", // Use testnet
     }),
   ],
 });
@@ -144,94 +266,51 @@ The SIWN plugin adds a `nearAccount` table to store user NEAR account associatio
 | isPrimary | boolean | Whether this is the user's primary account|
 | createdAt | date    | Creation timestamp                        |
 
-## Complete Implementation Example
+## API Reference
 
-Here's a complete example showing how to implement SIWN authentication:
+### Client Actions
 
-```ts title="auth.ts"
-import { betterAuth } from "better-auth";
-import { siwn } from "better-near-auth";
+The client plugin provides the following actions:
 
-export const auth = betterAuth({
-  database: {
-    provider: "sqlite",
-    url: "./db.sqlite"
-  },
-  plugins: [
-    siwn({
-      recipient: "myapp.com",
-      anonymous: false, // Require email for users
-      emailDomainName: "myapp.com",
-      
-      // Optional: Custom profile lookup
-      getProfile: async (accountId) => {
-        // Custom profile logic, falls back to NEAR Social
-      },
-    }),
-  ],
-});
-```
+#### `authClient.near`
 
-```ts title="auth-client.ts"
-import { createAuthClient } from "better-auth/client";
-import { siwnClient } from "better-near-auth/client";
+- `nonce(params)` - Request a nonce from the server
+- `verify(params)` - Verify an auth token with the server
+- `getProfile(accountId?)` - Get user profile from NEAR Social
+- `getNearClient()` - Get the embedded fastintear client
+- `getAccountId()` - Get the currently connected account ID
+- `disconnect()` - Disconnect wallet and clear cached data
 
-export const authClient = createAuthClient({
-  baseURL: "http://localhost:3000",
-  plugins: [siwnClient()],
-});
-```
+#### `authClient.requestSignIn`
 
-```tsx title="LoginButton.tsx"
-import { authClient } from "./auth-client";
-import { useState } from "react";
+- `near(params, callbacks?)` - Connect wallet and cache nonce (Step 1)
 
-export function LoginButton() {
-  const { data: session } = authClient.useSession();
-  const [isSigningIn, setIsSigningIn] = useState(false);
+#### `authClient.signIn`
 
-  if (session) {
-    return (
-      <div>
-        <p>Welcome, {session.user.name}!</p>
-        <button onClick={() => authClient.signOut()}>Sign out</button>
-      </div>
-    );
-  }
+- `near(params, callbacks?)` - Sign message and authenticate (Step 2)
 
-  const handleSignIn = async () => {
-    setIsSigningIn(true);
-    
-    try {
-      await authClient.signIn.near(
-        { recipient: "myapp.com", signer: window.near },
-        {
-          onSuccess: () => {
-            console.log("Successfully signed in!");
-          },
-          onError: (error) => {
-            console.error("Sign in failed:", error.message);
-          }
-        }
-      );
-    } catch (error) {
-      console.error("Authentication error:", error);
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
+### Callback Interface
 
-  return (
-    <button onClick={handleSignIn} disabled={isSigningIn}>
-      {isSigningIn ? "Signing in..." : "Sign in with NEAR"}
-    </button>
-  );
+```typescript
+interface AuthCallbacks {
+  onSuccess?: () => void;
+  onError?: (error: Error & { status?: number; code?: string }) => void;
 }
 ```
 
+### Error Codes
+
+Common error codes you may encounter:
+
+- `SIGNER_NOT_AVAILABLE` - NEAR wallet not available
+- `WALLET_NOT_CONNECTED` - Wallet not connected before signing
+- `NONCE_NOT_FOUND` - No valid cached nonce found
+- `ACCOUNT_MISMATCH` - Cached nonce doesn't match current account
+- `UNAUTHORIZED_INVALID_OR_EXPIRED_NONCE` - Server nonce expired or invalid
+
 ## Advanced Configuration
 
-For advanced use cases, you can customize the validation functions passed to `verify` in `near-sign-verify`:
+For advanced use cases, you can customize the validation functions:
 
 ```ts title="advanced-auth.ts"
 import { betterAuth } from "better-auth";
@@ -295,14 +374,77 @@ export const auth = betterAuth({
       },
       
       // Validate function call keys against allowed contracts
-      validateLimitedAccessKey: async ({ accountId, publicKey, contractId }) => {
+      validateLimitedAccessKey: async ({ accountId, publicKey, recipient }) => {
         const allowedContracts = ["myapp.near", "social.near"];
-        return contractId ? allowedContracts.includes(contractId) : true;
+        return recipient ? allowedContracts.includes(recipient) : true;
       },
     }),
   ],
 });
 ```
+
+## Network Support
+
+The plugin automatically detects the network from the account ID:
+
+- Accounts ending with `.testnet` use the testnet network
+- All other accounts use the mainnet network
+
+You can configure the client to use a specific network:
+
+```ts title="testnet-config.ts"
+export const authClient = createAuthClient({
+  plugins: [
+    siwnClient({
+      domain: "myapp.com",
+      networkId: "testnet", // Use testnet
+    }),
+  ],
+});
+```
+
+## Security Features
+
+### NEP-413 Compliance
+- Follows NEAR Enhancement Proposal 413 for secure message signing
+- Implements proper nonce handling to prevent replay attacks
+- Validates message format and recipient information
+
+### Nonce Management
+- Unique nonce storage per account/network/publicKey combination
+- 15-minute server-side expiration for nonces
+- 5-minute client-side cache expiration
+- Automatic cleanup after successful authentication
+
+### Access Key Support
+- Supports both full access keys and function call access keys
+- Configurable validation for limited access keys
+- Contract-specific access control when using function call keys
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Wallet not connected"**
+   - You must call `requestSignIn.near()` before `signIn.near()`
+   - Check that the embedded fastintear client is properly initialized
+
+2. **"No valid nonce found"**
+   - Ensure `requestSignIn.near()` completed successfully before calling `signIn.near()`
+   - Client nonces expire after 5 minutes
+
+3. **"Invalid or expired nonce"**
+   - Server nonces expire after 15 minutes
+   - Ensure client and server clocks are synchronized
+
+4. **"Account ID mismatch"**
+   - Verify the signed message contains the correct account ID
+   - Check for wallet switching between the two authentication steps
+
+5. **"Network ID mismatch"**
+   - Ensure the networkId sent to the server matches the account's network
+   - Testnet accounts must use "testnet", mainnet accounts use "mainnet"
+
 
 ## Links
 
@@ -311,3 +453,4 @@ export const auth = betterAuth({
 * [NEP-413 Specification](https://github.com/near/NEPs/blob/master/neps/nep-0413.md)
 * [near-sign-verify](https://github.com/elliotBraem/near-sign-verify)
 * [fastintear](https://github.com/elliotBraem/fastintear)
+* [Example Implementation](https://better-near-auth.near.page)

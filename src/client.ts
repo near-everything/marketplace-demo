@@ -1,7 +1,8 @@
 import { base64ToBytes } from "@fastnear/utils";
 import type { BetterAuthClientPlugin, BetterFetch, BetterFetchOption, BetterFetchResponse } from "better-auth/client";
+// TODO: tree shaking, browser vs node
 import * as fastintear from "fastintear";
-import { atom, type Atom } from "nanostores";
+import { atom } from "nanostores";
 import { sign, type WalletInterface } from "near-sign-verify";
 import { siwn } from ".";
 import { type AccountId, type NonceRequestT, type NonceResponseT, type ProfileResponseT, type VerifyRequestT, type VerifyResponseT } from "./types";
@@ -18,9 +19,9 @@ export interface AuthCallbacks {
 }
 
 export interface SIWNClientConfig {
-	contractId: string;
-	methodName
+	domain: string; // TODO: this could potentially be shade agent proxy or something, doesn't really have any purpose rn
 	networkId?: "mainnet" | "testnet";
+	// TODO: should include browser vs keypair
 }
 
 export interface CachedNonceData {
@@ -56,8 +57,8 @@ export interface SIWNClientPlugin extends BetterAuthClientPlugin {
 
 export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 	// Create embedded NEAR client
-	const nearClient = fastintear.createNearClient({ 
-		networkId: config.networkId || "mainnet" 
+	const nearClient = fastintear.createNearClient({
+		networkId: config.networkId || "mainnet"
 	});
 
 	// Create atoms for caching nonce only
@@ -130,7 +131,7 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 										const nonceRequest: NonceRequestT = {
 											accountId,
 											publicKey,
-											networkId
+											networkId: networkId as "mainnet" | "testnet"
 										};
 
 										const nonceResponse: BetterFetchResponse<NonceResponseT> = await $fetch("/near/nonce", {
