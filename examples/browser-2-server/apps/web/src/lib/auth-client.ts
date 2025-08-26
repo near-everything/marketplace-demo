@@ -6,6 +6,7 @@ export const authClient = createAuthClient({
   plugins: [
     siwnClient({
       domain: "better-near-auth.near",
+      networkId: "mainnet",
     }),
   ],
 });

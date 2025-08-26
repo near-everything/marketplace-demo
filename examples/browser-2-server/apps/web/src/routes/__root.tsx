@@ -1,4 +1,3 @@
-import Header from "@/components/header";
 import Loader from "@/components/loader";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -10,8 +9,12 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import "../index.css";
+import type { trpc, queryClient } from "@/utils/trpc";
 
-export interface RouterAppContext {}
+export interface RouterAppContext {
+  trpc: typeof trpc;
+  queryClient: typeof queryClient;
+}
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
@@ -29,24 +32,6 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       {
         rel: "icon",
         href: "/favicon.ico",
-      },
-    ],
-    scripts: [
-      {
-        src: "https://unpkg.com/fastintear@latest/dist/umd/browser.global.js",
-        type: "text/javascript",
-      },
-      {
-        children: `
-      window.near && window.near.config({ networkId: "mainnet" });
-      
-      if (typeof window.near !== "undefined") {
-        console.log("NEAR (via global object 'near') is ready!");
-      } else {
-        console.error("NEAR global object 'near' not found!");
-      }
-    `,
-        type: "text/javascript",
       },
     ],
   }),

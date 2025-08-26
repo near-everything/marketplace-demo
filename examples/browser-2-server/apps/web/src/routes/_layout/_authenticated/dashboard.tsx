@@ -1,4 +1,4 @@
-import NearProfile from "@/components/near-profile";
+import { NearProfile } from "@/components/near-profile";
 import { useTRPC } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";

@@ -73,15 +73,23 @@ export const siwn = (options: SIWNPluginOptions) =>
 					body: NonceRequest,
 				},
 				async (ctx) => {
-					const { accountId } = ctx.body;
+					const { accountId, publicKey, networkId } = ctx.body;
 					const network = getNetworkFromAccountId(accountId);
+					
+					if (networkId !== network) {
+						throw new APIError("BAD_REQUEST", {
+							message: "Network ID mismatch with account ID",
+							status: 400,
+						});
+					}
+
 					const nonce = options.getNonce ? await options.getNonce() : generateNonce();
 
 					// Store nonce as base64 string for database compatibility
 					const nonceString = bytesToBase64(nonce);
 
 					await ctx.context.internalAdapter.createVerificationValue({
-						identifier: `siwn:${accountId}:${network}`,
+						identifier: `siwn:${accountId}:${network}:${publicKey}`,
 						value: nonceString!,
 						expiresAt: new Date(Date.now() + 15 * 60 * 1000),
 					});

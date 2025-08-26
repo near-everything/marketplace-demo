@@ -1,13 +1,15 @@
 import { base64ToBytes } from "@fastnear/utils";
-import type { BetterAuthClientPlugin, BetterFetchOption, BetterFetchResponse } from "better-auth/client";
+import type { BetterAuthClientPlugin, BetterFetch, BetterFetchOption, BetterFetchResponse } from "better-auth/client";
+import * as fastintear from "fastintear";
+import { atom, type Atom } from "nanostores";
 import { sign, type WalletInterface } from "near-sign-verify";
-import type { siwn } from ".";
+import { siwn } from ".";
 import { type AccountId, type NonceRequestT, type NonceResponseT, type ProfileResponseT, type VerifyRequestT, type VerifyResponseT } from "./types";
-import type { User } from "better-auth";
 
 export interface Signer {
 	accountId(): string | null;
 	signMessage: WalletInterface["signMessage"];
+	requestSignIn: typeof fastintear.requestSignIn
 }
 
 export interface AuthCallbacks {
@@ -16,7 +18,17 @@ export interface AuthCallbacks {
 }
 
 export interface SIWNClientConfig {
-	domain: string;
+	contractId: string;
+	methodName
+	networkId?: "mainnet" | "testnet";
+}
+
+export interface CachedNonceData {
+	nonce: string;
+	accountId: string;
+	publicKey: string;
+	networkId: string;
+	timestamp: number;
 }
 
 export interface SIWNClientActions {
@@ -24,19 +36,44 @@ export interface SIWNClientActions {
 		nonce: (params: NonceRequestT) => Promise<BetterFetchResponse<NonceResponseT>>;
 		verify: (params: VerifyRequestT) => Promise<BetterFetchResponse<VerifyResponseT>>;
 		getProfile: (accountId?: AccountId) => Promise<BetterFetchResponse<ProfileResponseT>>;
+		getNearClient: () => ReturnType<typeof fastintear.createNearClient>;
+		getAccountId: () => string | null;
+		disconnect: () => Promise<void>;
+	};
+	requestSignIn: {
+		near: (params: { recipient: string }, callbacks?: AuthCallbacks) => Promise<void>;
 	};
 	signIn: {
-		near: (params: { recipient: string, signer: Signer }, callbacks?: AuthCallbacks) => Promise<void>;
+		near: (params: { recipient: string }, callbacks?: AuthCallbacks) => Promise<void>;
 	};
 }
 
 export interface SIWNClientPlugin extends BetterAuthClientPlugin {
 	id: "siwn";
 	$InferServerPlugin: ReturnType<typeof siwn>;
-	getActions: ($fetch: any) => SIWNClientActions;
+	getActions: ($fetch: BetterFetch) => SIWNClientActions;
 }
 
 export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
+	// Create embedded NEAR client
+	const nearClient = fastintear.createNearClient({ 
+		networkId: config.networkId || "mainnet" 
+	});
+
+	// Create atoms for caching nonce only
+	const cachedNonce = atom<CachedNonceData | null>(null);
+
+	const clearNonce = () => {
+		cachedNonce.set(null);
+	};
+
+	const isNonceValid = (nonceData: CachedNonceData | null): boolean => {
+		if (!nonceData) return false;
+		const now = Date.now();
+		const fiveMinutes = 5 * 60 * 1000;
+		return (now - nonceData.timestamp) < fiveMinutes;
+	};
+
 	return {
 		id: "siwn",
 		$InferServerPlugin: {} as ReturnType<typeof siwn>,
@@ -63,45 +100,134 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 							body: { accountId },
 							...fetchOptions
 						});
-
+					},
+					getNearClient: () => nearClient,
+					getAccountId: () => nearClient.accountId(),
+					disconnect: async () => {
+						await nearClient.signOut();
+						clearNonce();
 					},
 				},
-				signIn: {
+				requestSignIn: {
 					near: async (
-						params: { recipient: string, signer: Signer },
+						params: { recipient: string },
 						callbacks?: AuthCallbacks
 					): Promise<void> => {
 						try {
-							const { signer, recipient } = params;
+							const { recipient } = params;
 
-							if (!signer) {
-								throw new Error("NEAR signer not available");
+							if (!nearClient) {
+								const error = new Error("NEAR client not available") as Error & { code?: string };
+								error.code = "SIGNER_NOT_AVAILABLE";
+								throw error;
 							}
 
-							const accountId = signer.accountId();
-							if (!accountId) {
-								throw new Error("Wallet not connected. Please connect your wallet first.");
-							}
+							clearNonce();
 
-							const nonceResponse: BetterFetchResponse<NonceResponseT> = await $fetch("/near/nonce", {
-								method: "POST",
-								body: { accountId }
+							await nearClient.requestSignIn({ contractId: recipient }, {
+								onSuccess: async ({ accountId, publicKey, networkId }: { accountId: string, publicKey: string, networkId: string }) => {
+									try {
+										const nonceRequest: NonceRequestT = {
+											accountId,
+											publicKey,
+											networkId
+										};
+
+										const nonceResponse: BetterFetchResponse<NonceResponseT> = await $fetch("/near/nonce", {
+											method: "POST",
+											body: nonceRequest
+										});
+
+										if (nonceResponse.error) {
+											throw new Error(nonceResponse.error.message || "Failed to get nonce");
+										}
+
+										const nonce = nonceResponse?.data?.nonce;
+										if (!nonce) {
+											throw new Error("No nonce received from server");
+										}
+
+										// Cache nonce with all wallet data
+										const cachedData: CachedNonceData = {
+											nonce,
+											accountId,
+											publicKey,
+											networkId,
+											timestamp: Date.now()
+										};
+										cachedNonce.set(cachedData);
+
+										callbacks?.onSuccess?.();
+									} catch (error) {
+										const err = error instanceof Error ? error : new Error(String(error));
+										clearNonce();
+										callbacks?.onError?.(err);
+									}
+								},
+								onError: (error: any) => {
+									const err = error instanceof Error ? error : new Error(String(error));
+									clearNonce();
+									callbacks?.onError?.(err);
+								}
 							});
+						} catch (error) {
+							const err = error instanceof Error ? error : new Error(String(error));
+							clearNonce();
+							callbacks?.onError?.(err);
+						}
+					}
+				},
+				signIn: {
+					near: async (
+						params: { recipient: string },
+						callbacks?: AuthCallbacks
+					): Promise<void> => {
+						try {
+							const { recipient } = params;
 
-							if (nonceResponse.error) {
-								throw new Error(nonceResponse.error.message || "Failed to get nonce");
+							if (!nearClient) {
+								const error = new Error("NEAR client not available") as Error & { code?: string };
+								error.code = "SIGNER_NOT_AVAILABLE";
+								throw error;
 							}
 
-							const nonce = nonceResponse?.data?.nonce;
-							const message = `Sign in to ${recipient}\n\nAccount ID: ${accountId}\nNonce: ${nonce}`;
-							const nonceBytes = base64ToBytes(nonce!);
+							const accountId = nearClient.accountId();
+							if (!accountId) {
+								const error = new Error("Wallet not connected. Please connect your wallet first.") as Error & { code?: string };
+								error.code = "WALLET_NOT_CONNECTED";
+								throw error;
+							}
 
+							// Retrieve nonce from cache
+							const nonceData = cachedNonce.get();
+
+							if (!isNonceValid(nonceData)) {
+								const error = new Error("No valid nonce found. Please call requestSignIn first.") as Error & { code?: string };
+								error.code = "NONCE_NOT_FOUND";
+								throw error;
+							}
+
+							// Validate that the cached nonce matches the current account
+							if (nonceData!.accountId !== accountId) {
+								const error = new Error("Account ID mismatch. Please call requestSignIn again.") as Error & { code?: string };
+								error.code = "ACCOUNT_MISMATCH";
+								throw error;
+							}
+
+							const { nonce } = nonceData!;
+
+							// Create the sign-in message
+							const message = `Sign in to ${recipient}\n\nAccount ID: ${accountId}\nNonce: ${nonce}`;
+							const nonceBytes = base64ToBytes(nonce);
+
+							// Sign the message
 							const authToken = await sign(message, {
-								signer,
+								signer: nearClient,
 								recipient,
 								nonce: nonceBytes,
 							});
 
+							// Verify the signature with the server
 							const verifyResponse: BetterFetchResponse<VerifyResponseT> = await $fetch("/near/verify", {
 								method: "POST",
 								body: {
@@ -118,9 +244,13 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 								throw new Error("Authentication verification failed");
 							}
 
+							// Clear the nonce after successful authentication
+							clearNonce();
 							callbacks?.onSuccess?.();
 						} catch (error) {
 							const err = error instanceof Error ? error : new Error(String(error));
+							// Clear nonce on error to prevent reuse
+							clearNonce();
 							callbacks?.onError?.(err);
 						}
 					}

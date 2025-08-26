@@ -1,5 +1,6 @@
 import SignInForm from "@/components/sign-in-form";
-import { createFileRoute } from "@tanstack/react-router";
+import { authClient } from "@/lib/auth-client";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import z from "zod";
 
 const searchSchema = z.object({
@@ -7,6 +8,15 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/login")({
+  beforeLoad: async () => {
+    const { data: session } = await authClient.getSession();
+    if (session) {
+      throw redirect({
+        to: "/dashboard",
+      });
+    }
+    return { session };
+  },
   component: RouteComponent,
   validateSearch: searchSchema,
 });

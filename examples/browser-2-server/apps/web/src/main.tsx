@@ -10,7 +10,10 @@ const router = createRouter({
   scrollRestoration: true,
   defaultPreloadStaleTime: 0,
   defaultPreload: "intent",
-  context: { trpc, queryClient },
+  context: { 
+    trpc, 
+    queryClient,
+  },
   defaultPendingComponent: () => <Loader />,
   defaultNotFoundComponent: () => <div>Not Found</div>,
   Wrap: ({ children }) => (

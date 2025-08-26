@@ -11,7 +11,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
-import NearProfile from "./near-profile";
+import { NearProfile } from "./near-profile";
 
 interface Profile {
   name?: string;

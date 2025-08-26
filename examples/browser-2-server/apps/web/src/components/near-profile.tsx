@@ -2,7 +2,6 @@ import { authClient } from "@/lib/auth-client";
 import { useEffect, useState } from "react";
 import { Skeleton } from "./ui/skeleton";
 import type { Profile } from "better-near-auth";
-import * as fastintear from "fastintear";
 
 interface NearProfileProps {
   accountId?: string;
@@ -12,7 +11,7 @@ interface NearProfileProps {
   className?: string;
 }
 
-export default function NearProfile({
+export function NearProfile({
   accountId,
   variant = "badge",
   showAvatar = true,

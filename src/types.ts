@@ -34,7 +34,11 @@ export type SocialImage = z.infer<typeof socialImageSchema>;
 export type Profile = z.infer<typeof profileSchema>;
 
 
-export const NonceRequest = z.object({ accountId: accountIdSchema });
+export const NonceRequest = z.object({
+	accountId: accountIdSchema,
+	publicKey: z.string(),
+	networkId: z.string() // TODO: enum
+});
 export const VerifyRequest = z.object({
 	authToken: z.string().min(1),
 	accountId: accountIdSchema,
