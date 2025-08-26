@@ -13,7 +13,7 @@
         "@hono/trpc-server": "^0.4.0",
         "@trpc/server": "^11.4.4",
         "better-auth": "^1.3.7",
-        "better-near-auth": "^0.1.4",
+        "better-near-auth": "^0.1.5",
         "dotenv": "^17.2.1",
         "drizzle-orm": "^0.44.4",
         "hono": "^4.9.2",
@@ -40,7 +40,7 @@
         "@trpc/client": "^11.4.4",
         "@trpc/tanstack-react-query": "^11.4.4",
         "better-auth": "^1.3.7",
-        "better-near-auth": "link:better-near-auth",
+        "better-near-auth": "^0.1.5",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "fastintear": "^0.2.4",
@@ -591,7 +591,7 @@
 
     "better-call": ["better-call@1.0.15", "", { "dependencies": { "@better-fetch/fetch": "^1.1.4", "rou3": "^0.5.1", "set-cookie-parser": "^2.7.1", "uncrypto": "^0.1.3" } }, "sha512-u4ZNRB1yBx5j3CltTEbY2ZoFPVcgsuvciAqTEmPvnZpZ483vlZf4LGJ5aVau1yMlrvlyHxOCica3OqXBLhmsUw=="],
 
-    "better-near-auth": ["better-near-auth@0.1.4", "", { "dependencies": { "@better-auth/utils": "^0.2.6", "@fastnear/utils": "^0.9.7", "fastintear": "^0.2.4", "nanostores": "^1.0.1", "near-sign-verify": "^0.4.3", "zod": "^4.0.17" }, "peerDependencies": { "better-auth": "^1.0.0", "typescript": "^5.0.0" } }, "sha512-bdqeKkYi6XWJ8E6MkgbjptLir0UIE+sy/VNpp9adTJzH0afN8gHGIyEn8P9iEOQXhKfJe/Z2Er2W/Ko2/kR7KQ=="],
+    "better-near-auth": ["better-near-auth@0.1.5", "", { "dependencies": { "@better-auth/utils": "^0.2.6", "@fastnear/utils": "^0.9.7", "fastintear": "^0.2.4", "nanostores": "^1.0.1", "near-sign-verify": "^0.4.3", "zod": "^4.0.17" }, "peerDependencies": { "better-auth": "^1.0.0", "typescript": "^5.0.0" } }, "sha512-75WDULHsyvOMOPoQ2FHV5HbBKhvNHALOeRxwnnnPVyU9ZJOK4oGFO5RPj81idzcW1lDgYNTVYgzrTUolLmPOvA=="],
 
     "big.js": ["big.js@7.0.1", "", {}, "sha512-iFgV784tD8kq4ccF1xtNMZnXeZzVuXWWM+ERFzKQjv+A5G9HC8CY3DuV45vgzFFcW+u2tIvmF95+AzWgs6BjCg=="],
 
@@ -1152,8 +1152,6 @@
     "rolldown/@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.0-beta.33", "", {}, "sha512-she25NCG6NoEPC/SEB4pHs5STcnfI4VBFOzjeI63maSPrWME5J2XC8ogrBgp8NaE/xzj28/kbpSaebiMvFRj+w=="],
 
     "source-map-support/source-map": ["source-map@0.6.1", "", {}, "sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g=="],
-
-    "web/better-near-auth": ["better-near-auth@link:better-near-auth", {}],
 
     "@esbuild-kit/core-utils/esbuild/@esbuild/android-arm": ["@esbuild/android-arm@0.18.20", "", { "os": "android", "cpu": "arm" }, "sha512-fyi7TDI/ijKKNZTUJAQqiG5T7YjJXgnzkURqmGj13C6dCqckZBLdl4h7bkhHt/t0WP+zO9/zwroDvANaOqO5Sw=="],
 
