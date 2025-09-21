@@ -66,3 +66,25 @@ export type VerifyRequestT = z.infer<typeof VerifyRequest>;
 export type VerifyResponseT = z.infer<typeof VerifyResponse>;
 export type ProfileRequestT = z.infer<typeof ProfileRequest>;
 export type ProfileResponseT = z.infer<typeof ProfileResponse>;
+
+export interface BetterAuthSession {
+	user: {
+		id: string;
+		name: string;
+		email: string;
+		image?: string;
+		nearAccount?: NearAccount;
+	};
+	session: {
+		token: string;
+		expiresAt: Date;
+	};
+}
+
+export interface SessionResponse {
+	data: BetterAuthSession | null;
+	error?: {
+		message: string;
+		code?: string;
+	};
+}

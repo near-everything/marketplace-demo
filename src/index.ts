@@ -1,5 +1,5 @@
 import { bytesToBase64 } from "@fastnear/utils";
-import { APIError, createAuthEndpoint, sessionMiddleware } from "better-auth/api";
+import { APIError, createAuthEndpoint, createAuthMiddleware, sessionMiddleware } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import type { BetterAuthPlugin, User } from "better-auth/types";
 import { generateNonce, parseAuthToken, verify, type VerificationResult, type VerifyOptions } from "near-sign-verify";
@@ -65,6 +65,58 @@ export const siwn = (options: SIWNPluginOptions) =>
 	({
 		id: "siwn",
 		schema,
+		hooks: {
+			after: [
+				{
+					// Hook into successful authentication to help client sync state
+					matcher: (context) => context.path === "/near/verify" && context.method === "POST",
+					handler: createAuthMiddleware(async (ctx) => {
+						// Add NEAR account data to response headers for client state sync
+						if (ctx.body && typeof ctx.body === 'object' && 'accountId' in ctx.body) {
+							const { accountId } = ctx.body as { accountId: string };
+							const network = getNetworkFromAccountId(accountId);
+							
+							// Set headers that client can use for state restoration
+							ctx.setHeader('X-Near-Account-Id', accountId);
+							ctx.setHeader('X-Near-Network', network);
+						}
+						
+						return { context: ctx };
+					}),
+				},
+				{
+					// Hook into session to include NEAR account data
+					matcher: (context) => context.path === "/auth/session" && context.method === "GET",
+					handler: createAuthMiddleware(async (ctx) => {
+						// This will help the client get NEAR account data with session
+						const session = ctx.context.session;
+						if (session) {
+							// Find primary NEAR account for this user
+							const nearAccount: NearAccount | null = await ctx.context.adapter.findOne({
+								model: "nearAccount",
+								where: [
+									{ field: "userId", operator: "eq", value: session.user.id },
+									{ field: "isPrimary", operator: "eq", value: true },
+								],
+							});
+							
+							if (nearAccount) {
+								// Add NEAR account to session response
+								ctx.context.session = {
+									...session,
+									user: {
+										...session.user,
+										nearAccount: nearAccount
+									}
+								};
+							}
+						}
+						
+						return { context: ctx };
+					}),
+				},
+			],
+		},
 		endpoints: {
 			getSiwnNonce: createAuthEndpoint(
 				"/near/nonce",

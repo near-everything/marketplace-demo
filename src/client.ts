@@ -2,7 +2,7 @@ import { base64ToBytes } from "@fastnear/utils";
 import type { BetterAuthClientPlugin, BetterFetch, BetterFetchOption, BetterFetchResponse } from "better-auth/client";
 import { createNearClient } from "fastintear";
 import { atom } from "nanostores";
-import { sign } from "near-sign-verify";
+import { parseAuthToken, sign } from "near-sign-verify";
 import type { siwn } from ".";
 import { type AccountId, type NonceRequestT, type NonceResponseT, type ProfileResponseT, type VerifyRequestT, type VerifyResponseT } from "./types";
 
@@ -49,13 +49,9 @@ export interface SIWNClientPlugin extends BetterAuthClientPlugin {
 }
 
 export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
-	// Create embedded NEAR client
-	const nearClient = createNearClient({
-		networkId: config.networkId || "mainnet"
-	});
-
 	// Create atoms for caching nonce only
 	const cachedNonce = atom<CachedNonceData | null>(null);
+
 
 	const clearNonce = () => {
 		cachedNonce.set(null);
@@ -72,6 +68,10 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 		id: "siwn",
 		$InferServerPlugin: {} as ReturnType<typeof siwn>,
 		getActions: ($fetch): SIWNClientActions => {
+			const nearClient = createNearClient({
+				networkId: config.networkId || "mainnet"
+			});
+
 			return {
 				near: {
 					nonce: async (params: NonceRequestT, fetchOptions?: BetterFetchOption): Promise<BetterFetchResponse<NonceResponseT>> => {
@@ -220,6 +220,8 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 								recipient,
 								nonce: nonceBytes,
 							});
+
+							console.log("authToken: ", parseAuthToken(authToken));
 
 							// Verify the signature with the server
 							const verifyResponse: BetterFetchResponse<VerifyResponseT> = await $fetch("/near/verify", {
