@@ -1,4 +1,5 @@
 import { NearProfile } from "@/components/near-profile";
+import { Guestbook } from "@/components/guestbook";
 import { useTRPC } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -41,6 +42,9 @@ function RouteComponent() {
               {privateData.data?.message ?? "Failed to Load"}
             </p>
           </div>
+
+          {/* Guestbook Card */}
+          <Guestbook />
         </div>
       </div>
     </div>

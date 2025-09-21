@@ -37,6 +37,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   }),
 });
 
+
 function RootComponent() {
   const isFetching = useRouterState({
     select: (s) => s.isLoading,

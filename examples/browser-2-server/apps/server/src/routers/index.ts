@@ -9,7 +9,7 @@ export const appRouter = router({
   }),
   privateData: protectedProcedure.query(({ ctx }) => {
     return {
-      message: "hello world!",
+      message: "hello world! this is data coming from a protected procedure on your server",
       user: ctx.session.user,
     };
   }),
