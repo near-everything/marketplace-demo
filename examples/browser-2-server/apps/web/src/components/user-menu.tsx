@@ -112,7 +112,8 @@ export default function UserMenu() {
                 // Sign out from auth session
                 await authClient.signOut({
                   fetchOptions: {
-                    onSuccess: () => {
+                    onSuccess: async () => {
+                      await authClient.near.disconnect(); // TODO: this could be moved to signOut
                       navigate({
                         to: "/",
                       });

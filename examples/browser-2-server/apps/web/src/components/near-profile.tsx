@@ -42,7 +42,7 @@ export function NearProfile({
     fetchProfile();
   }, [accountId]);
 
-  const displayName = profile?.name || window?.near?.accountId();
+  const displayName = profile?.name;
   const avatarUrl =
     profile?.image?.url || profile?.image?.ipfs_cid
       ? `https://ipfs.near.social/ipfs/${profile.image.ipfs_cid}`

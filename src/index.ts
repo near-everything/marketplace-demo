@@ -18,6 +18,7 @@ import {
 	VerifyRequest,
 	VerifyResponse
 } from "./types";
+export * from "./types";
 
 function getOrigin(baseURL: string): string {
 	try {
@@ -67,23 +68,6 @@ export const siwn = (options: SIWNPluginOptions) =>
 		schema,
 		hooks: {
 			after: [
-				{
-					// Hook into successful authentication to help client sync state
-					matcher: (context) => context.path === "/near/verify" && context.method === "POST",
-					handler: createAuthMiddleware(async (ctx) => {
-						// Add NEAR account data to response headers for client state sync
-						if (ctx.body && typeof ctx.body === 'object' && 'accountId' in ctx.body) {
-							const { accountId } = ctx.body as { accountId: string };
-							const network = getNetworkFromAccountId(accountId);
-							
-							// Set headers that client can use for state restoration
-							ctx.setHeader('X-Near-Account-Id', accountId);
-							ctx.setHeader('X-Near-Network', network);
-						}
-						
-						return { context: ctx };
-					}),
-				},
 				{
 					// Hook into session to include NEAR account data
 					matcher: (context) => context.path === "/auth/session" && context.method === "GET",

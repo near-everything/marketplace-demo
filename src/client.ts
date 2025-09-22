@@ -32,6 +32,7 @@ export interface SIWNClientActions {
 		getProfile: (accountId?: AccountId) => Promise<BetterFetchResponse<ProfileResponseT>>;
 		getNearClient: () => ReturnType<typeof createNearClient>;
 		getAccountId: () => string | null;
+		getState: () => { accountId: string | null; publicKey: string | null; networkId: string } | null;
 		disconnect: () => Promise<void>;
 	};
 	requestSignIn: {
@@ -45,13 +46,16 @@ export interface SIWNClientActions {
 export interface SIWNClientPlugin extends BetterAuthClientPlugin {
 	id: "siwn";
 	$InferServerPlugin: ReturnType<typeof siwn>;
+	getAtoms: ($fetch: BetterFetch) => {
+		nearState: ReturnType<typeof atom<{ accountId: string | null; publicKey: string | null; networkId: string } | null>>;
+		cachedNonce: ReturnType<typeof atom<CachedNonceData | null>>;
+	};
 	getActions: ($fetch: BetterFetch) => SIWNClientActions;
 }
 
 export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
-	// Create atoms for caching nonce only
 	const cachedNonce = atom<CachedNonceData | null>(null);
-
+	const nearState = atom<{ accountId: string | null; publicKey: string | null; networkId: string } | null>(null);
 
 	const clearNonce = () => {
 		cachedNonce.set(null);
@@ -67,9 +71,30 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 	return {
 		id: "siwn",
 		$InferServerPlugin: {} as ReturnType<typeof siwn>,
+		
+		getAtoms: ($fetch) => ({
+			nearState,
+			cachedNonce,
+		}),
+		
 		getActions: ($fetch): SIWNClientActions => {
 			const nearClient = createNearClient({
-				networkId: config.networkId || "mainnet"
+				networkId: config.networkId || "mainnet",
+				callbacks: {
+					onConnect: (accountData) => {
+						// Update nearState atom when wallet connects
+						nearState.set({
+							accountId: accountData.accountId,
+							publicKey: accountData.publicKey,
+							networkId: config.networkId || "mainnet"
+						});
+					},
+					onDisconnect: () => {
+						// Clear nearState atom when wallet disconnects
+						nearState.set(null);
+						clearNonce();
+					}
+				}
 			});
 
 			return {
@@ -97,9 +122,11 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 					},
 					getNearClient: () => nearClient,
 					getAccountId: () => nearClient.accountId(),
+					getState: () => nearState.get(),
 					disconnect: async () => {
 						await nearClient.signOut();
 						clearNonce();
+						nearState.set(null);
 					},
 				},
 				requestSignIn: {
@@ -235,6 +262,8 @@ export const siwnClient = (config: SIWNClientConfig): SIWNClientPlugin => {
 							if (verifyResponse.error) {
 								throw new Error(verifyResponse.error.message || "Failed to verify signature");
 							}
+
+							console.log("hello", verifyResponse)
 
 							if (!verifyResponse?.data?.success) {
 								throw new Error("Authentication verification failed");
