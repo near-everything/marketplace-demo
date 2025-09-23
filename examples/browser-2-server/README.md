@@ -32,7 +32,7 @@ cp apps/web/.env.example apps/web/.env
 
 ### 3. Database Setup
 
-Start the Postgres Container:
+Start the Postgres service:
 
 ```bash
 docker compose up -d
