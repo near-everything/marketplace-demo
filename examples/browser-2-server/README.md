@@ -67,11 +67,9 @@ bun run dev
 - **NEAR Profile Component** (`apps/web/src/components/near-profile.tsx`) - Displays NEAR Social profiles
 - **FastinTEAR Integration** (`apps/web/index.html`) - Browser wallet connectivity
 
-
-
 ## Project Structure
 
-```
+```cmd
 browser-2-server/
 ├── apps/
 │   ├── web/                          # React frontend
