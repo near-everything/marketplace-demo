@@ -9,7 +9,6 @@ This example demonstrates how to implement Sign in with NEAR (SIWN) authenticati
 - **FastinTEAR Integration** - Browser wallet connectivity via FastinTEAR
 - **Profile Integration** - Automatic fetching of user profiles from NEAR Social
 - **TypeScript** - Full type safety across client and server
-- **SQLite Database** - Local development with better-sqlite3
 - **Modern Stack** - React, TanStack Router, Hono, Drizzle ORM
 
 ## Getting Started
@@ -33,17 +32,16 @@ cp apps/web/.env.example apps/web/.env
 
 ### 3. Database Setup
 
-Initialize the SQLite database:
+Start the Postgres Container:
 
 ```bash
-cd apps/server
-bun run db:push
+docker compose up -d
 ```
 
 ### 4. Start the Development Server
 
 ```bash
-bun dev
+bun run dev
 ```
 
 - **Web App**: [http://localhost:3001](http://localhost:3001)
