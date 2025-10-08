@@ -1,4 +1,4 @@
-import type { AuthPluginSchema } from "better-auth/types";
+import type { BetterAuthPluginDBSchema } from "better-auth/db";
 
 export const schema = {
 	nearAccount: {
@@ -33,4 +33,4 @@ export const schema = {
 			},
 		},
 	},
-} satisfies AuthPluginSchema;
+} satisfies BetterAuthPluginDBSchema;

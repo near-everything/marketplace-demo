@@ -1,4 +1,5 @@
-import { bytesToBase64 } from "@fastnear/utils";
+// @ts-expect-error no type file
+import { bytesToBase64 } from "fastintear/utils";
 import { APIError, createAuthEndpoint, createAuthMiddleware, sessionMiddleware } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import type { BetterAuthPlugin, User } from "better-auth/types";
