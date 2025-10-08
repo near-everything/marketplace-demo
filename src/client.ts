@@ -1,4 +1,3 @@
-// @ts-expect-error no type file
 import { base64ToBytes } from "fastintear/utils";
 import type { BetterAuthClientPlugin, BetterFetch, BetterFetchOption, BetterFetchResponse } from "better-auth/client";
 import { createNearClient } from "fastintear";
