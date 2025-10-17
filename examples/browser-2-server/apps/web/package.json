@@ -8,7 +8,8 @@
     "build": "vite build",
     "serve": "vite preview",
     "start": "vite",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "deploy": "bunx web4-deploy dist web4.better-near-auth.near --nearfs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
