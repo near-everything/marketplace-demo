@@ -8,8 +8,9 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { QueryClientProvider } from "@tanstack/react-query";
 import "../index.css";
-import type { queryClient, orpc } from "@/utils/orpc";
+import { queryClient, orpc } from "@/utils/orpc";
 
 export interface RouterAppContext {
   orpc: typeof orpc;
@@ -53,10 +54,12 @@ function RootComponent() {
         disableTransitionOnChange
         storageKey="vite-ui-theme"
       >
-        <div className="grid grid-rows-[auto_1fr] h-svh touch-manipulation">
-          {/* {isFetching && <Loader />} */}
-          <Outlet />
-        </div>
+        <QueryClientProvider client={queryClient}>
+          <div className="grid grid-rows-[auto_1fr] h-svh touch-manipulation">
+            {/* {isFetching && <Loader />} */}
+            <Outlet />
+          </div>
+        </QueryClientProvider>
         <Toaster richColors />
       </ThemeProvider>
       <TanStackRouterDevtools position="bottom-left" />
