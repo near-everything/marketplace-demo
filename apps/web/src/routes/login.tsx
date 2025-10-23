@@ -8,6 +8,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/login")({
+  ssr: false,
   beforeLoad: async () => {
     const { data: session } = await authClient.getSession();
     if (session) {
