@@ -18,7 +18,7 @@ export default defineConfig({
       },
     }),
     nitroV2Plugin({
-      preset: "node-server", // Vercel supports Node.js serverless functions
+      preset: "vercel",
     }),
     react(),
   ],
