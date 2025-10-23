@@ -18,7 +18,7 @@ export default defineConfig({
       },
     }),
     nitroV2Plugin({
-      preset: "vercel",
+      preset: "node-server",
     }),
     react(),
   ],
