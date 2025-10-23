@@ -1,67 +1,24 @@
 {
-  "name": "better-near-auth",
-  "version": "0.2.0",
-  "description": "Sign in with NEAR (SIWN) plugin for Better Auth",
-  "main": "src/index.ts",
-  "module": "src/index.ts",
-  "type": "module",
-  "exports": {
-    ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts"
-    },
-    "./client": {
-      "import": "./src/client.ts",
-      "types": "./src/client.ts"
-    }
-  },
-  "scripts": {
-    "build": "tsc --noEmit",
-    "test": "vitest",
-    "test:watch": "vitest --watch",
-    "lint": "tsc --noEmit",
-    "dev": "bun run src/index.ts"
-  },
-  "keywords": [
-    "better-auth",
-    "near",
-    "siwn",
-    "sign-in-with-near",
-    "authentication",
-    "blockchain",
-    "web3",
-    "plugin"
+  "name": "marketplace-demo",
+  "private": true,
+  "workspaces": [
+    "apps/*"
   ],
-  "author": "efiz.near",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/elliotBraem/better-near-auth.git"
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:native": "turbo -F native dev",
+    "dev:web": "turbo -F web dev",
+    "dev:server": "turbo -F server dev",
+    "db:push": "turbo -F server db:push",
+    "db:studio": "turbo -F server db:studio",
+    "db:generate": "turbo -F server db:generate",
+    "db:migrate": "turbo -F server db:migrate"
   },
-  "bugs": {
-    "url": "https://github.com/elliotBraem/better-near-auth/issues"
-  },
-  "homepage": "https://github.com/elliotBraem/better-near-auth#readme",
-  "peerDependencies": {
-    "better-auth": "^1.0.0",
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "fastintear": "^0.3.6",
-    "nanostores": "^1.0.1",
-    "near-sign-verify": "^0.4.3",
-    "zod": "^4.1.12"
-  },
+  "dependencies": {},
   "devDependencies": {
-    "@types/bun": "latest",
-    "@types/node": "^24.8.1",
-    "better-auth": "^1.3.27",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "turbo": "^2.5.4"
   },
-  "files": [
-    "src/",
-    "README.md",
-    "LICENSE"
-  ]
+  "packageManager": "bun@1.3.0"
 }
