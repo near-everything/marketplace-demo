@@ -14,7 +14,9 @@ import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authenticated'
 import { Route as LayoutProfileAccountIdRouteImport } from './routes/_layout/profile/$accountId'
+import { Route as LayoutAuthenticatedShopRouteImport } from './routes/_layout/_authenticated/shop'
 import { Route as LayoutAuthenticatedDashboardRouteImport } from './routes/_layout/_authenticated/dashboard'
+import { Route as LayoutAuthenticatedCheckoutSuccessRouteImport } from './routes/_layout/_authenticated/checkout-success'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -39,23 +41,38 @@ const LayoutProfileAccountIdRoute = LayoutProfileAccountIdRouteImport.update({
   path: '/profile/$accountId',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutAuthenticatedShopRoute = LayoutAuthenticatedShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => LayoutAuthenticatedRoute,
+} as any)
 const LayoutAuthenticatedDashboardRoute =
   LayoutAuthenticatedDashboardRouteImport.update({
     id: '/dashboard',
     path: '/dashboard',
     getParentRoute: () => LayoutAuthenticatedRoute,
   } as any)
+const LayoutAuthenticatedCheckoutSuccessRoute =
+  LayoutAuthenticatedCheckoutSuccessRouteImport.update({
+    id: '/checkout-success',
+    path: '/checkout-success',
+    getParentRoute: () => LayoutAuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/': typeof LayoutIndexRoute
+  '/checkout-success': typeof LayoutAuthenticatedCheckoutSuccessRoute
   '/dashboard': typeof LayoutAuthenticatedDashboardRoute
+  '/shop': typeof LayoutAuthenticatedShopRoute
   '/profile/$accountId': typeof LayoutProfileAccountIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/': typeof LayoutIndexRoute
+  '/checkout-success': typeof LayoutAuthenticatedCheckoutSuccessRoute
   '/dashboard': typeof LayoutAuthenticatedDashboardRoute
+  '/shop': typeof LayoutAuthenticatedShopRoute
   '/profile/$accountId': typeof LayoutProfileAccountIdRoute
 }
 export interface FileRoutesById {
@@ -64,21 +81,37 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_layout/_authenticated': typeof LayoutAuthenticatedRouteWithChildren
   '/_layout/': typeof LayoutIndexRoute
+  '/_layout/_authenticated/checkout-success': typeof LayoutAuthenticatedCheckoutSuccessRoute
   '/_layout/_authenticated/dashboard': typeof LayoutAuthenticatedDashboardRoute
+  '/_layout/_authenticated/shop': typeof LayoutAuthenticatedShopRoute
   '/_layout/profile/$accountId': typeof LayoutProfileAccountIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/login' | '/' | '/dashboard' | '/profile/$accountId'
+  fullPaths:
+    | '/login'
+    | '/'
+    | '/checkout-success'
+    | '/dashboard'
+    | '/shop'
+    | '/profile/$accountId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/' | '/dashboard' | '/profile/$accountId'
+  to:
+    | '/login'
+    | '/'
+    | '/checkout-success'
+    | '/dashboard'
+    | '/shop'
+    | '/profile/$accountId'
   id:
     | '__root__'
     | '/_layout'
     | '/login'
     | '/_layout/_authenticated'
     | '/_layout/'
+    | '/_layout/_authenticated/checkout-success'
     | '/_layout/_authenticated/dashboard'
+    | '/_layout/_authenticated/shop'
     | '/_layout/profile/$accountId'
   fileRoutesById: FileRoutesById
 }
@@ -124,6 +157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutProfileAccountIdRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/_authenticated/shop': {
+      id: '/_layout/_authenticated/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof LayoutAuthenticatedShopRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
+    }
     '/_layout/_authenticated/dashboard': {
       id: '/_layout/_authenticated/dashboard'
       path: '/dashboard'
@@ -131,15 +171,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAuthenticatedDashboardRouteImport
       parentRoute: typeof LayoutAuthenticatedRoute
     }
+    '/_layout/_authenticated/checkout-success': {
+      id: '/_layout/_authenticated/checkout-success'
+      path: '/checkout-success'
+      fullPath: '/checkout-success'
+      preLoaderRoute: typeof LayoutAuthenticatedCheckoutSuccessRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
+    }
   }
 }
 
 interface LayoutAuthenticatedRouteChildren {
+  LayoutAuthenticatedCheckoutSuccessRoute: typeof LayoutAuthenticatedCheckoutSuccessRoute
   LayoutAuthenticatedDashboardRoute: typeof LayoutAuthenticatedDashboardRoute
+  LayoutAuthenticatedShopRoute: typeof LayoutAuthenticatedShopRoute
 }
 
 const LayoutAuthenticatedRouteChildren: LayoutAuthenticatedRouteChildren = {
+  LayoutAuthenticatedCheckoutSuccessRoute:
+    LayoutAuthenticatedCheckoutSuccessRoute,
   LayoutAuthenticatedDashboardRoute: LayoutAuthenticatedDashboardRoute,
+  LayoutAuthenticatedShopRoute: LayoutAuthenticatedShopRoute,
 }
 
 const LayoutAuthenticatedRouteWithChildren =
