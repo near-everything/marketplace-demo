@@ -42,8 +42,10 @@
     "zod": "^4.0.17"
   },
   "devDependencies": {
+    "@tanstack/nitro-v2-vite-plugin": "^1.133.19",
     "@tanstack/react-query-devtools": "^5.85.5",
     "@tanstack/react-router-devtools": "^1.131.27",
+    "@tanstack/react-start": "^1.133.22",
     "@tanstack/router-plugin": "^1.131.27",
     "@types/node": "^22.17.2",
     "@types/react": "^19.1.10",
