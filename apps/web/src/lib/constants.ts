@@ -8,3 +8,15 @@ export const TSHIRT_PRODUCT = {
   size: "S",
   color: "white",
 };
+
+export const ORDER_STATUS = {
+  PENDING: "pending",
+  PAID: "paid",
+  PROCESSING: "processing",
+  PRINTING: "printing",
+  SHIPPED: "shipped",
+  DELIVERED: "delivered",
+  CANCELLED: "cancelled",
+} as const;
+
+export type OrderStatus = typeof ORDER_STATUS[keyof typeof ORDER_STATUS];

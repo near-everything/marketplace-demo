@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_layout/")({
   loader: async () => {
     try {
       const response = await fetch(
-        "https://raw.githubusercontent.com/elliotBraem/better-near-auth/main/README.md"
+        "https://raw.githubusercontent.com/near-everything/marketplace-plugin/refs/heads/main/README.md"
       );
       let content = await response.text();
       
@@ -37,7 +37,7 @@ function HomeComponent() {
   const copyLLMContent = async () => {
     try {
       const response = await fetch(
-        "https://raw.githubusercontent.com/elliotBraem/better-near-auth/main/LLM.txt"
+        "https://raw.githubusercontent.com/elliotBraem/marketplace-demo/main/LLM.txt"
       );
       const content = await response.text();
       await navigator.clipboard.writeText(content);
@@ -57,7 +57,7 @@ function HomeComponent() {
       <div className="space-y-4 sm:space-y-6 lg:space-y-8">
         <div className="text-left">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-semibold">better-near-auth</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-semibold">marketplace-demo</h1>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
               <Button
                 variant="outline"
@@ -75,7 +75,7 @@ function HomeComponent() {
                 className="flex items-center gap-2"
               >
                 <a
-                  href="https://github.com/elliotBraem/better-near-auth"
+                  href="https://github.com/near-everything/marketplace-plugin"
                   target="_blank"
                   rel="noopener noreferrer"
                 >

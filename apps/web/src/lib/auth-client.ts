@@ -5,7 +5,7 @@ export const authClient = createAuthClient({
   baseURL: import.meta.env.VITE_SERVER_URL,
   plugins: [
     siwnClient({
-      domain: "better-near-auth.near",
+      domain: "marketplace-demo.near",
       networkId: "mainnet",
     }),
   ],

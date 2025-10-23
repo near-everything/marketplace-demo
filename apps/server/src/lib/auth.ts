@@ -25,7 +25,7 @@ export const auth = betterAuth({
   },
   plugins: [
     siwn({
-      recipient: "better-near-auth.near"
+      recipient: "marketplace-demo.near"
     }),
   ],
   account: {

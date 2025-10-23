@@ -89,7 +89,7 @@ export default function AccountLinking() {
       if (!nearAccountId) {
         // Phase 1: Connect wallet
         await authClient.requestSignIn.near(
-          { recipient: "better-near-auth.near" },
+          { recipient: "marketplace-demo.near" },
           {
             onSuccess: () => {
               setIsProcessingNear(false);
@@ -109,7 +109,7 @@ export default function AccountLinking() {
       } else {
         // Phase 2: Link account
         await authClient.near.link(
-          { recipient: "better-near-auth.near" },
+          { recipient: "marketplace-demo.near" },
           {
             onSuccess: () => {
               toast.success("NEAR account linked successfully");

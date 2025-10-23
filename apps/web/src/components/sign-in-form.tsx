@@ -25,7 +25,7 @@ export default function SignInForm() {
     setIsConnectingWallet(true);
     try {
       await authClient.requestSignIn.near(
-        { recipient: "better-near-auth.near" },
+        { recipient: "marketplace-demo.near" },
         {
           onSuccess: () => {
             setIsConnectingWallet(false);
@@ -52,7 +52,7 @@ export default function SignInForm() {
     setIsSigningInWithNear(true);
     try {
       await authClient.signIn.near(
-        { recipient: "better-near-auth.near" },
+        { recipient: "marketplace-demo.near" },
         {
           onSuccess: () => {
             setIsSigningInWithNear(false);
@@ -62,7 +62,7 @@ export default function SignInForm() {
             });
             toast.success(`Signed in as: ${accountId}`);
           },
-          onError: (error) => {
+          onError: (error: any) => {
             setIsSigningInWithNear(false);
             console.error("NEAR sign in error:", error);
             
