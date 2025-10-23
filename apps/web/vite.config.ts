@@ -10,6 +10,9 @@ export default defineConfig({
     tailwindcss(),
     tanstackStart({
       srcDirectory: "src",
+      router: {
+        entry: "./router.tsx",
+      },
     }),
     nitroV2Plugin({
       preset: "node-server", // Vercel supports Node.js serverless functions
