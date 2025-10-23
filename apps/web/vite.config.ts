@@ -6,6 +6,9 @@ import { defineConfig } from "vite";
 import { nitroV2Plugin } from "@tanstack/nitro-v2-vite-plugin";
 
 export default defineConfig({
+  ssr: {
+    noExternal: ['fastintear', 'better-near-auth'],
+  },
   plugins: [
     tailwindcss(),
     tanstackStart({

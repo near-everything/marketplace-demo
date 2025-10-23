@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { QueryClientProvider } from "@tanstack/react-query";
-import "../index.css";
+import appCss from "../index.css?url";
 import { queryClient, orpc } from "@/utils/orpc";
 
 export interface RouterAppContext {
@@ -30,6 +30,10 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
     ],
     links: [
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
       {
         rel: "icon",
         href: "/favicon.ico",
