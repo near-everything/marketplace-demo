@@ -1,23 +1,26 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-console.log('SERVER_URL from process.env:', process.env.VITE_SERVER_URL);
-console.log('All env vars:', Object.keys(process.env));
-
 async function handle({ request }: { request: Request }) {
-  // Forward the RPC request to the Hono backend server
+  console.log('🔥 HANDLE CALLED for:', request.url);
+  
   const url = new URL(request.url)
   const serverUrl = process.env.VITE_SERVER_URL || import.meta.env.VITE_SERVER_URL;
   const targetUrl = `${serverUrl}${url.pathname.replace('/api', '')}`
-
-  return fetch(targetUrl, {
+  
+  console.log('🎯 Forwarding to:', targetUrl);
+  
+  const response = await fetch(targetUrl, {
     method: request.method,
     headers: {
       ...Object.fromEntries(request.headers),
-      // Forward cookies and credentials
       'cookie': request.headers.get('cookie') || '',
     },
     body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
-  })
+  });
+  
+  console.log('📥 Response status:', response.status);
+  
+  return response;
 }
 
 export const Route = createFileRoute('/api/rpc/$')({
