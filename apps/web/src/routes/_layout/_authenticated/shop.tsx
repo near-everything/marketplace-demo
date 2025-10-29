@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { client } from "@/utils/orpc";
 import { TSHIRT_PRODUCT } from "@/lib/constants";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_layout/_authenticated/shop")({
   component: ShopPage,
@@ -22,6 +23,11 @@ function ShopPage() {
       if (data?.url) {
         window.location.href = data.url;
       }
+    },
+    onError: (error: Error) => {
+      toast.error("Failed to create checkout", {
+        description: error.message || "Please try again later",
+      });
     },
   });
 

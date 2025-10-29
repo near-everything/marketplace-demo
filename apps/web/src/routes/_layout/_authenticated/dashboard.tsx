@@ -5,12 +5,31 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
 import { orpc } from "@/utils/orpc";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_layout/_authenticated/dashboard")({
   loader: async ({ context }) => {
     const queryOptions = context.orpc.privateData.queryOptions();
     return context.queryClient.ensureQueryData(queryOptions);
   },
+  errorComponent: ({ error, reset }) => (
+    <div className="container mx-auto p-4 sm:p-6 max-w-7xl">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Dashboard</h1>
+      </div>
+      <div className="bg-destructive/10 border border-destructive rounded-lg p-6">
+        <h2 className="text-xl font-semibold text-destructive mb-2">
+          Failed to Load Dashboard
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          {error.message || "An error occurred while loading your dashboard data."}
+        </p>
+        <Button onClick={reset} variant="outline">
+          Try Again
+        </Button>
+      </div>
+    </div>
+  ),
   component: RouteComponent,
 });
 
