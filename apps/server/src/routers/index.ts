@@ -1,14 +1,14 @@
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { db } from "../db";
+import { order } from "../db/schema/orders";
 import {
   protectedProcedure,
   publicProcedure,
 } from "../lib/orpc";
 import { createCheckoutSession } from "../services/stripe";
-import { db } from "../db";
-import { order } from "../db/schema/orders";
-import { eq } from "drizzle-orm";
-import { z } from "zod";
 
-export const appRouter = publicProcedure.router({
+export const appRouter = {
   healthCheck: publicProcedure.handler(() => {
     return "OK";
   }),
@@ -83,7 +83,7 @@ export const appRouter = publicProcedure.router({
       }
 
       return orderRecord;
-    }),
-});
+    })
+};
 
 export type AppRouter = typeof appRouter;

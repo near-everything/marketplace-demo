@@ -2,8 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { client } from "@/utils/orpc";
-import { ORDER_STATUS } from "@/lib/constants";
+import { orpc } from "@/utils/orpc";
 
 export const Route = createFileRoute("/_layout/_authenticated/checkout-success")({
   component: CheckoutSuccessPage,
@@ -13,17 +12,13 @@ function CheckoutSuccessPage() {
   const searchParams = new URLSearchParams(window.location.search);
   const sessionId = searchParams.get("session_id");
 
-  const { data: order, isLoading } = useQuery({
-    queryKey: ["order", sessionId],
-    queryFn: async () => {
-      if (!sessionId) return null;
+  const { data: orders, isLoading } = useQuery(
+    orpc.getOrders.queryOptions({
+      input: {},
+    })
+  );
 
-      // Find order by Stripe session ID
-      const orders = await client.getOrders.query({});
-      return orders.find(order => order.stripeSessionId === sessionId) || null;
-    },
-    enabled: !!sessionId,
-  });
+  const order = sessionId && orders ? orders.find(order => order.stripeSessionId === sessionId) || null : null;
 
   if (isLoading) {
     return (
@@ -79,7 +74,7 @@ function CheckoutSuccessPage() {
 
               <div className="flex justify-between items-center">
                 <span className="font-medium">Amount:</span>
-                <span>${(order.totalAmount / 100).toFixed(2)} {order.currency}</span>
+                <span>${(order.totalAmount ? order.totalAmount / 100 : 0).toFixed(2)} {order.currency}</span>
               </div>
 
               <div className="flex justify-between items-center">
