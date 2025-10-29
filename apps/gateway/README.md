@@ -9,19 +9,22 @@ The main domain (`demo.everything.market`) points to this proxy server, which th
 
 ## Railway Environment Variables
 
-Set these environment variables on your Railway Gateway service:
+Set these environment variables on your Railway Gateway service (using Railway internal networking):
 
 ```bash
 # Gateway Configuration
 PORT=443
 
-# Backend (Server) Service URLs
-SERVER_DOMAIN=b2sserver-production.up.railway.app
-SERVER_PORT=443
+# Backend (Server) Service - Railway Internal
+SERVER_DOMAIN=b2sserver.railway.internal
+SERVER_PORT=3000
 
-# Web (Frontend) Service URLs
-WEB_DOMAIN=web-production-15e3b.up.railway.app
+# Frontend (Web) Service - Railway Internal
+WEB_DOMAIN=marketplace-plugin.railway.internal
+WEB_PORT=3000
 ```
+
+**Note:** Port 3000 is Railway's default. Check your actual service settings if different.
 
 ## Architecture
 
