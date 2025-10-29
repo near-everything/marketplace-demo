@@ -6,8 +6,8 @@ FROM base AS install
 WORKDIR /app
 
 # Copy dependency files
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+COPY package.json ./
+RUN bun install
 
 # Build stage
 FROM base AS build
