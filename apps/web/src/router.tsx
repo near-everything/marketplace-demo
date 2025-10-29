@@ -1,10 +1,11 @@
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import { orpc, queryClient } from "./utils/orpc";
 
 // Create the router instance
 export function getRouter() {
-  return createRouter({
+  const router = createRouter({
     routeTree,
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
@@ -14,6 +15,14 @@ export function getRouter() {
       queryClient,
     },
   });
+
+  // Setup SSR query integration
+  setupRouterSsrQueryIntegration({
+    router,
+    queryClient,
+  });
+
+  return router;
 }
 
 

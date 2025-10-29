@@ -3,7 +3,11 @@ import { createORPCClient } from "@orpc/client";
 import type { RouterClient } from "@orpc/server";
 import { RPCLink } from "@orpc/client/fetch";
 import { createTanstackQueryUtils } from "@orpc/tanstack-query";
+import { BatchLinkPlugin } from "@orpc/client/plugins";
+import { getRequestHeaders } from "@tanstack/react-start/server";
+import { createIsomorphicFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { onError } from "@orpc/server";
 import type { AppRouter } from "../../../server/src/routers";
 
 export const queryClient = new QueryClient({
@@ -22,16 +26,62 @@ export const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 60 * 1000 } },
 });
 
-const link = new RPCLink({
-  url: `${import.meta.env.VITE_SERVER_URL}/rpc`,
-  fetch(url, options) {
-    return fetch(url, {
-      ...options,
-      credentials: "include",
+/**
+ * This creates an isomorphic oRPC client that works correctly in both
+ * SSR (server-side rendering) and client-side environments.
+ */
+const getORPCClient = createIsomorphicFn()
+  .server(() => {
+    // Server-side: Use full server URL and forward headers/cookies
+    const link = new RPCLink({
+      url: `${import.meta.env.VITE_SERVER_URL}/rpc`,
+      headers: () => getRequestHeaders(), // Forward request headers
+      interceptors: [
+        onError((error) => {
+          console.error("oRPC Server Error:", error);
+          throw error;
+        }),
+      ],
+      fetch(url, options) {
+        return fetch(url, {
+          ...options,
+          credentials: "include",
+        });
+      },
     });
-  },
-});
 
-export const client: RouterClient<AppRouter> = createORPCClient(link);
+    return createORPCClient(link);
+  })
+  .client(() => {
+    // Client-side: Use browser relative URL with cookies
+    const link = new RPCLink({
+      url: `${window.location.origin}/api/rpc`,
+      plugins: [
+        new BatchLinkPlugin({
+          // Batch requests to reduce network overhead
+          exclude: ({ path }) => path[0] === 'sse', // Don't batch SSE calls
+          groups: [{
+            condition: () => true,
+            context: {},
+          }],
+        }),
+      ],
+      interceptors: [
+        onError((error) => {
+          console.error("oRPC Client Error:", error);
+        }),
+      ],
+      fetch(url, options) {
+        return fetch(url, {
+          ...options,
+          credentials: "include",
+        });
+      },
+    });
+
+    return createORPCClient(link);
+  });
+
+export const client: RouterClient<AppRouter> = getORPCClient();
 
 export const orpc = createTanstackQueryUtils(client);

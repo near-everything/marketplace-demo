@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { ClientOnly, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
@@ -11,7 +11,7 @@ import { orpc } from "@/utils/orpc";
 export default function Header() {
   const healthCheck = useQuery(orpc.healthCheck.queryOptions());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const links = [
     { to: "/", label: "Home" },
     { to: "/dashboard", label: "Dashboard" },
@@ -25,8 +25,8 @@ export default function Header() {
         <nav className="hidden md:flex items-center gap-8">
           {links.map(({ to, label }) => {
             return (
-              <Link 
-                key={to} 
+              <Link
+                key={to}
                 to={to}
                 className="text-lg font-medium text-foreground/80 transition-colors hover:text-foreground [&.active]:text-foreground [&.active]:font-semibold"
               >
@@ -43,9 +43,13 @@ export default function Header() {
           className="md:hidden"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
-          {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {isMobileMenuOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
         </Button>
-        
+
         <div className="flex items-center gap-3 sm:gap-6">
           {/* Health Check - Hidden on small screens */}
           <div className="hidden sm:flex items-center gap-3">
@@ -62,7 +66,7 @@ export default function Header() {
                 : "API Disconnected"}
             </span>
           </div>
-          
+
           {/* Health Check Indicator - Mobile only */}
           <div className="sm:hidden">
             <div
@@ -71,9 +75,11 @@ export default function Header() {
               }`}
             />
           </div>
-          
+
           <ModeToggle />
-          <UserMenu />
+          <ClientOnly>
+            <UserMenu />
+          </ClientOnly>
         </div>
       </div>
 
@@ -83,8 +89,8 @@ export default function Header() {
           <nav className="px-4 py-4 space-y-2">
             {links.map(({ to, label }) => {
               return (
-                <Link 
-                  key={to} 
+                <Link
+                  key={to}
                   to={to}
                   className="block py-2 text-lg font-medium text-foreground/80 transition-colors hover:text-foreground [&.active]:text-foreground [&.active]:font-semibold"
                   onClick={() => setIsMobileMenuOpen(false)}

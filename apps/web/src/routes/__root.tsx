@@ -1,16 +1,16 @@
-import Loader from "@/components/loader";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { orpc, queryClient } from "@/utils/orpc";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { QueryClientProvider } from "@tanstack/react-query";
 import {
   HeadContent,
   Outlet,
-  createRootRouteWithContext,
-  useRouterState,
+  Scripts,
+  createRootRouteWithContext
 } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { QueryClientProvider } from "@tanstack/react-query";
 import appCss from "../index.css?url";
-import { queryClient, orpc } from "@/utils/orpc";
 
 export interface RouterAppContext {
   orpc: typeof orpc;
@@ -19,6 +19,7 @@ export interface RouterAppContext {
 
 export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
+  notFoundComponent: () => <p>Not Found</p>,
   head: () => ({
     meta: [
       {
@@ -42,31 +43,38 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   }),
 });
 
-
 function RootComponent() {
-  // If we want some sort of loading...
-  // const isFetching = useRouterState({
-  //   select: (s) => s.isLoading,
-  // });
-
   return (
-    <>
-      <HeadContent />
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="dark"
-        disableTransitionOnChange
-        storageKey="vite-ui-theme"
-      >
-        <QueryClientProvider client={queryClient}>
-          <div className="grid grid-rows-[auto_1fr] h-svh touch-manipulation">
-            {/* {isFetching && <Loader />} */}
-            <Outlet />
-          </div>
-        </QueryClientProvider>
-        <Toaster richColors />
-      </ThemeProvider>
-      <TanStackRouterDevtools position="bottom-left" />
-    </>
+    <RootDocument>
+      <Outlet />
+    </RootDocument>
+  );
+}
+
+function RootDocument({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <head>
+        <HeadContent />
+      </head>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          disableTransitionOnChange
+          storageKey="vite-ui-theme"
+        >
+          <QueryClientProvider client={queryClient}>
+            <div className="grid grid-rows-[auto_1fr] h-svh touch-manipulation">
+              {children}
+            </div>
+          </QueryClientProvider>
+          <Toaster richColors />
+        </ThemeProvider>
+        <TanStackRouterDevtools position="bottom-right" />
+        <ReactQueryDevtools buttonPosition="bottom-left" />
+        <Scripts />
+      </body>
+    </html>
   );
 }

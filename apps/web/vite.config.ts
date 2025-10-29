@@ -1,15 +1,14 @@
 import tailwindcss from "@tailwindcss/vite";
+import { nitroV2Plugin } from "@tanstack/nitro-v2-vite-plugin";
+import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { defineConfig } from "vite";
-import { nitroV2Plugin } from "@tanstack/nitro-v2-vite-plugin";
 
 export default defineConfig({
-  ssr: {
-    external: ['fastintear', 'better-near-auth'],
-  },
   plugins: [
+    devtools() as any,
     tailwindcss(),
     tanstackStart({
       srcDirectory: "src",
@@ -18,7 +17,7 @@ export default defineConfig({
       },
     }),
     nitroV2Plugin({
-      preset: "node-server",
+      preset: "bun",
     }),
     react(),
   ],
