@@ -9,7 +9,7 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { db } from "./db";
 import { RPCHandler } from "@orpc/server/fetch";
 import { verifyWebhookSignature as verifyStripeWebhook } from "./services/stripe";
-import { createGelatoOrder, handleOrderStatusUpdate } from "./services/gelato";
+import { createGelatoOrder, handleOrderStatusUpdate, verifyWebhookSignature } from "./services/gelato";
 import { order } from "./db/schema/orders";
 import { eq } from "drizzle-orm";
 
@@ -85,9 +85,7 @@ app.post("/api/gelato/webhook", async (c) => {
     }
 
     // Verify webhook signature (basic verification)
-    const isValid = await import("./services/gelato").then(m =>
-      m.verifyWebhookSignature(body, signature, process.env.GELATO_WEBHOOK_SECRET!)
-    );
+    const isValid = await verifyWebhookSignature(body, signature, process.env.GELATO_WEBHOOK_SECRET!)
 
     if (!isValid) {
       return c.json({ error: "Invalid signature" }, 400);
