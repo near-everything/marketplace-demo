@@ -18,9 +18,6 @@ export default defineConfig({
     }),
     nitroV2Plugin({
       preset: "bun",
-      externals: {
-        external: ['@noble/hashes', '@noble/curves'],
-      },
       compatibilityDate: "latest"
     }),
     react(),
