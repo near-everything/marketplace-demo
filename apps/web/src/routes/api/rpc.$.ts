@@ -1,5 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 
+console.log('SERVER_URL from process.env:', process.env.VITE_SERVER_URL);
+console.log('All env vars:', Object.keys(process.env));
+
 async function handle({ request }: { request: Request }) {
   // Forward the RPC request to the Hono backend server
   const url = new URL(request.url)
