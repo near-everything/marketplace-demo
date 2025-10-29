@@ -39,8 +39,22 @@
     log { format json }
 
     route {
-        # Server
+        # Server RPC
         handle /rpc/* {
+            reverse_proxy {
+                dynamic a {
+                    name {$SERVER_DOMAIN}
+                    port {$SERVER_PORT}
+                    refresh 1s
+                    dial_timeout 30s
+                    versions ipv4 ipv6
+                }
+                import common_proxy_settings
+            }
+        }
+
+        # Server API
+        handle /api/* {
             reverse_proxy {
                 dynamic a {
                     name {$SERVER_DOMAIN}
