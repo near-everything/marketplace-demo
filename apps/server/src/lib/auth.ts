@@ -12,7 +12,7 @@ export const auth = betterAuth({
   }),
   trustedOrigins: process.env.CORS_ORIGIN?.split(",") || ["*"],
   secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: process.env.BETTER_AUTH_URL || "https://demo.everything.market",
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -44,10 +44,9 @@ export const auth = betterAuth({
   },
   advanced: {
     defaultCookieAttributes: {
-      sameSite: "none",
+      sameSite: "lax",
       secure: true,
-      httpOnly: true,
-      domain: ".up.railway.app"
+      httpOnly: true
     }
   }
 });

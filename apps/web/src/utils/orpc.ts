@@ -34,7 +34,7 @@ const getORPCClient = createIsomorphicFn()
   .server(() => {
     // Server-side: Use full server URL and forward headers/cookies
     const link = new RPCLink({
-      url: `${process.env.VITE_SERVER_URL || import.meta.env.VITE_SERVER_URL}/rpc`,
+      url: `${process.env.VITE_SERVER_URL}/rpc`,
       headers: () => getRequestHeaders(), // Forward request headers
       interceptors: [
         onError((error) => {
@@ -55,7 +55,7 @@ const getORPCClient = createIsomorphicFn()
   .client(() => {
     // Client-side: Use browser relative URL with cookies
     const link = new RPCLink({
-      url: `${window.location.origin}/api/rpc`,
+      url: `${window.location.origin}/rpc`,
       plugins: [
         new BatchLinkPlugin({
           // Batch requests to reduce network overhead
