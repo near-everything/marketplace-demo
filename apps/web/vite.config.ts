@@ -17,7 +17,10 @@ export default defineConfig({
       },
     }),
     nitroV2Plugin({
-      preset: "node-server",
+      preset: "bun",
+      rollupConfig: {
+        external: ['@noble/hashes'],
+      },
     }),
     react(),
   ],
