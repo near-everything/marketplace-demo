@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 async function handle({ request }: { request: Request }) {
   // Forward the RPC request to the Hono backend server
   const url = new URL(request.url)
-  const serverUrl = process.env.SERVER_URL || import.meta.env.VITE_SERVER_URL;
+  const serverUrl = process.env.VITE_SERVER_URL || import.meta.env.VITE_SERVER_URL;
   const targetUrl = `${serverUrl}${url.pathname.replace('/api', '')}`
 
   return fetch(targetUrl, {
