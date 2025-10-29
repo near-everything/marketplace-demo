@@ -34,7 +34,7 @@ const getORPCClient = createIsomorphicFn()
   .server(() => {
     // Server-side: Use full server URL and forward headers/cookies
     const link = new RPCLink({
-      url: `${import.meta.env.VITE_SERVER_URL}/rpc`,
+      url: `${process.env.VITE_SERVER_URL || import.meta.env.VITE_SERVER_URL}/rpc`,
       headers: () => getRequestHeaders(), // Forward request headers
       interceptors: [
         onError((error) => {
