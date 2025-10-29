@@ -45,11 +45,11 @@ export const appRouter = publicProcedure.router({
       z.object({
         limit: z.number().optional().default(10),
         offset: z.number().optional().default(0),
-      }).optional()
+      })
     )
     .handler(async ({ input, context }) => {
       const { session } = context;
-      const { limit = 10, offset = 0 } = input || {};
+      const { limit, offset } = input;
 
       const orders = await db
         .select()
