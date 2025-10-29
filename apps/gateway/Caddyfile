@@ -42,7 +42,7 @@
         # Server
         handle /rpc/* {
             reverse_proxy {
-                dynamic a {
+                dynamic {
                     name {$SERVER_DOMAIN}
                     port {$SERVER_PORT}
                     refresh 1s
@@ -56,7 +56,7 @@
         # Frontend
         handle {
             reverse_proxy {
-                dynamic b {
+                dynamic {
                     name {$WEB_DOMAIN}
                     port {$WEB_PORT}
                     refresh 1s
