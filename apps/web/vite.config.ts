@@ -17,7 +17,7 @@ export default defineConfig({
       },
     }),
     nitroV2Plugin({
-      preset: "bun",
+      preset: "node-server",
     }),
     react(),
   ],
