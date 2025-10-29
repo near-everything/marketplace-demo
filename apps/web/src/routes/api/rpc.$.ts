@@ -14,7 +14,6 @@ async function handle({ request }: { request: Request }) {
       'cookie': request.headers.get('cookie') || '',
     },
     body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : undefined,
-    duplex: 'half' as any, // Required for request body forwarding
   })
 }
 
