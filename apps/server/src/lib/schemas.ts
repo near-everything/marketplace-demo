@@ -11,8 +11,8 @@ export const ShippingAddressSchema = z.object({
   state: z.string().min(1),
   postCode: z.string().min(1),
   country: z.string().length(2), // ISO country code
-  email: z.email(),
-  phone: z.string().min(1),
+  email: z.email().optional(),
+  phone: z.string().min(1).optional(),
 });
 
 export type ShippingAddress = z.infer<typeof ShippingAddressSchema>;
