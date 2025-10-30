@@ -56,7 +56,7 @@ app.post("/api/stripe/webhook", async (c) => {
         });
 
         // Extract and validate shipping address from Stripe
-        const shippingDetails = fullSession.shipping_details;
+        const shippingDetails = fullSession.collected_information?.shipping_details;
         let shippingAddress = null;
 
         if (shippingDetails) {
