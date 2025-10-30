@@ -9,7 +9,8 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { db } from "./db";
 import { RPCHandler } from "@orpc/server/fetch";
 import { verifyWebhookSignature as verifyStripeWebhook } from "./services/stripe";
-import { createGelatoOrder, handleOrderStatusUpdate, verifyWebhookSignature } from "./services/gelato";
+import { createGelatoOrder, handleOrderStatusUpdate, handleTrackingCodeUpdate, handleDeliveryEstimateUpdate, verifyWebhookSignature, type OrderItemFulfillment } from "./services/gelato";
+import { ShippingAddressSchema } from "./lib/schemas";
 import { order } from "./db/schema/orders";
 import { eq } from "drizzle-orm";
 
@@ -49,11 +50,33 @@ app.post("/api/stripe/webhook", async (c) => {
       const orderId = session.metadata?.orderId;
 
       if (orderId) {
-        // Update order status to paid
+        // Extract and validate shipping address from Stripe
+        const shippingDetails = session.shipping_details;
+        let shippingAddress = null;
+
+        if (shippingDetails) {
+          const [firstName, ...lastNameParts] = shippingDetails.name?.split(' ') || ['', ''];
+
+          shippingAddress = ShippingAddressSchema.parse({
+            firstName,
+            lastName: lastNameParts.join(' '),
+            addressLine1: shippingDetails.address?.line1 || '',
+            addressLine2: shippingDetails.address?.line2 || undefined,
+            city: shippingDetails.address?.city || '',
+            state: shippingDetails.address?.state || '',
+            postCode: shippingDetails.address?.postal_code || '',
+            country: shippingDetails.address?.country || '',
+            email: session.customer_details?.email || '',
+            phone: session.customer_details?.phone || '',
+          });
+        }
+
+        // Update order status to paid and store shipping address
         await db
           .update(order)
           .set({
             status: "paid",
+            shippingAddress: shippingAddress,
           })
           .where(eq(order.id, orderId));
 
@@ -84,8 +107,8 @@ app.post("/api/gelato/webhook", async (c) => {
       return c.json({ error: "Missing gelato signature" }, 400);
     }
 
-    // Verify webhook signature (basic verification)
-    const isValid = await verifyWebhookSignature(body, signature, process.env.GELATO_WEBHOOK_SECRET!)
+    // Verify webhook signature
+    const isValid = await verifyWebhookSignature(body, signature, process.env.GELATO_WEBHOOK_SECRET!);
 
     if (!isValid) {
       return c.json({ error: "Invalid signature" }, 400);
@@ -93,16 +116,42 @@ app.post("/api/gelato/webhook", async (c) => {
 
     const event = JSON.parse(body);
 
-    // Handle order status updates
-    if (event.event === "order_status_updated") {
-      const { orderId, fulfillmentStatus, comment } = event;
-      await handleOrderStatusUpdate(orderId, fulfillmentStatus, comment);
-    }
+    // Handle different webhook event types
+    switch (event.event) {
+      case "order_status_updated": {
+        const { orderReferenceId, fulfillmentStatus, items } = event;
 
-    // Handle item status updates
-    if (event.event === "order_item_status_updated") {
-      const { orderId, status, comment } = event;
-      await handleOrderStatusUpdate(orderId, status, comment);
+        // Extract tracking codes from items[].fulfillments[]
+        const trackingInfos: OrderItemFulfillment[] = [];
+        if (items && items.length > 0) {
+          for (const item of items) {
+            if (item.fulfillments && item.fulfillments.length > 0) {
+              trackingInfos.push(...item.fulfillments);
+            }
+          }
+        }
+
+        await handleOrderStatusUpdate(orderReferenceId, fulfillmentStatus, undefined, trackingInfos);
+        break;
+      }
+
+      case "order_item_status_updated": {
+        const { orderReferenceId, status, comment } = event;
+        await handleOrderStatusUpdate(orderReferenceId, status, comment);
+        break;
+      }
+
+      case "order_item_tracking_code_updated": {
+        const { orderReferenceId, trackingCode, trackingUrl, shipmentMethodName } = event;
+        await handleTrackingCodeUpdate(orderReferenceId, trackingCode, trackingUrl, shipmentMethodName);
+        break;
+      }
+
+      case "order_delivery_estimate_updated": {
+        const { orderReferenceId, minDeliveryDate, maxDeliveryDate } = event;
+        await handleDeliveryEstimateUpdate(orderReferenceId, minDeliveryDate, maxDeliveryDate);
+        break;
+      }
     }
 
     return c.json({ received: true });

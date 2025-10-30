@@ -1,8 +1,85 @@
-import { createHmac } from "crypto";
 import { db } from "../db";
 import { order } from "../db/schema/orders";
 import { eq } from "drizzle-orm";
 import { ORDER_STATUS } from "../lib/constants";
+import type { ShippingAddress } from "../lib/schemas";
+
+// Gelato Webhook Event Types
+export interface OrderItemFulfillment {
+  trackingCode: string;
+  trackingUrl: string;
+  shipmentMethodName: string;
+  shipmentMethodUid: string;
+  fulfillmentCountry: string;
+  fulfillmentStateProvince: string;
+  fulfillmentFacilityId: string;
+}
+
+export interface OrderItem {
+  itemReferenceId: string;
+  fulfillmentStatus: string;
+  fulfillments: OrderItemFulfillment[];
+}
+
+export interface OrderStatusUpdatedEvent {
+  id: string;
+  event: string;
+  orderId: string;
+  storeId: string | null;
+  orderReferenceId: string;
+  fulfillmentStatus: string;
+  items: OrderItem[];
+  created?: string;
+}
+
+export interface OrderItemStatusUpdatedEvent {
+  id: string;
+  event: string;
+  itemReferenceId: string;
+  orderReferenceId: string;
+  orderId: string;
+  storeId: string | null;
+  fulfillmentCountry: string;
+  fulfillmentStateProvince: string;
+  fulfillmentFacilityId: string;
+  status: string;
+  comment?: string;
+  created: string;
+}
+
+export interface OrderItemTrackingCodeUpdatedEvent {
+  id: string;
+  event: string;
+  orderId: string;
+  storeId: string | null;
+  itemReferenceId: string;
+  orderReferenceId: string;
+  trackingCode: string;
+  trackingUrl: string;
+  shipmentMethodName: string;
+  shipmentMethodUid: string;
+  productionCountry: string;
+  productionStateProvince: string;
+  productionFacilityId: string;
+  created: string;
+}
+
+export interface OrderDeliveryEstimateUpdatedEvent {
+  id: string;
+  event: string;
+  orderId: string;
+  storeId: string | null;
+  orderReferenceId: string;
+  minDeliveryDate: string;
+  maxDeliveryDate: string;
+  created: string;
+}
+
+export type GelatoWebhookEvent =
+  | OrderStatusUpdatedEvent
+  | OrderItemStatusUpdatedEvent
+  | OrderItemTrackingCodeUpdatedEvent
+  | OrderDeliveryEstimateUpdatedEvent;
 
 export interface GelatoOrderData {
   orderReferenceId: string;
@@ -15,30 +92,8 @@ export interface GelatoOrderData {
     quantity: number;
   }>;
   shipmentMethodUid: string;
-  shippingAddress: {
-    companyName?: string;
-    firstName: string;
-    lastName: string;
-    addressLine1: string;
-    addressLine2?: string;
-    state: string;
-    city: string;
-    postCode: string;
-    country: string;
-    email: string;
-    phone: string;
-  };
-  returnAddress: {
-    companyName: string;
-    addressLine1: string;
-    addressLine2?: string;
-    state: string;
-    city: string;
-    postCode: string;
-    country: string;
-    email: string;
-    phone: string;
-  };
+  shippingAddress: ShippingAddress;
+  returnAddress: ShippingAddress;
 }
 
 export async function createGelatoOrder(orderId: string) {
@@ -53,11 +108,15 @@ export async function createGelatoOrder(orderId: string) {
     throw new Error("Order not found");
   }
 
+  if (!orderRecord.shippingAddress) {
+    throw new Error("Shipping address is required but not provided");
+  }
+
   // Prepare Gelato order data
   const gelatoOrderData: GelatoOrderData = {
     orderReferenceId: orderRecord.gelatoReferenceId,
     customerReferenceId: orderRecord.userId,
-    currency: orderRecord.currency,
+    currency: orderRecord.currency || "USD",
     items: [
       {
         itemReferenceId: `item_${orderRecord.id}`,
@@ -67,18 +126,10 @@ export async function createGelatoOrder(orderId: string) {
       },
     ],
     shipmentMethodUid: "express",
-    shippingAddress: {
-      firstName: "Demo",
-      lastName: "User",
-      addressLine1: "123 Demo Street",
-      city: "Demo City",
-      state: "CA",
-      postCode: "12345",
-      country: "US",
-      email: "demo@example.com",
-      phone: "1234567890",
-    },
+    shippingAddress: orderRecord.shippingAddress,
     returnAddress: {
+      firstName: "Returns",
+      lastName: "Department",
       companyName: "Demo Company",
       addressLine1: "456 Return Street",
       city: "Return City",
@@ -123,22 +174,18 @@ export async function verifyWebhookSignature(
   signature: string,
   secret: string
 ): Promise<boolean> {
-  // Simple signature verification - in production you'd want more robust verification
-  // Gelato doesn't seem to provide detailed webhook signature docs, so this is basic
-  const expectedSignature = createHmac("sha256", secret)
-    .update(body)
-    .digest("hex");
-
-  return signature === expectedSignature;
+  // Gelato sends the webhook secret directly in the header
+  return signature === secret;
 }
 
 export async function handleOrderStatusUpdate(
-  orderId: string,
+  orderReferenceId: string,
   status: string,
-  comment?: string
+  comment?: string,
+  trackingInfo?: OrderItemFulfillment[]
 ) {
   // Map Gelato status to our status
-  let mappedStatus = ORDER_STATUS.PENDING;
+  let mappedStatus: typeof ORDER_STATUS[keyof typeof ORDER_STATUS] = ORDER_STATUS.PENDING;
 
   switch (status.toLowerCase()) {
     case "passed":
@@ -162,11 +209,80 @@ export async function handleOrderStatusUpdate(
       mappedStatus = ORDER_STATUS.PROCESSING;
   }
 
-  // Update order status
+  // Update order status and tracking info if provided
+  const updateData: any = { status: mappedStatus };
+
+  // Store tracking codes
+  if (trackingInfo && trackingInfo.length > 0) {
+    updateData.trackingCodes = trackingInfo;
+  }
+
+  // Update order using reference ID
+  await db
+    .update(order)
+    .set(updateData)
+    .where(eq(order.gelatoReferenceId, orderReferenceId));
+}
+
+export async function handleTrackingCodeUpdate(
+  orderReferenceId: string,
+  trackingCode: string,
+  trackingUrl: string,
+  shipmentMethodName: string
+) {
+  // Get current tracking codes to merge with new tracking info
+  const orderRecord = await db
+    .select()
+    .from(order)
+    .where(eq(order.gelatoReferenceId, orderReferenceId))
+    .then((rows) => rows[0]);
+
+  let trackingInfo: OrderItemFulfillment[] = [];
+
+  if (orderRecord?.trackingCodes && Array.isArray(orderRecord.trackingCodes)) {
+    trackingInfo = orderRecord.trackingCodes;
+  }
+
+  // Add or update tracking info
+  const existingIndex = trackingInfo.findIndex(t => t.trackingCode === trackingCode);
+  const newTracking: OrderItemFulfillment = {
+    trackingCode: trackingCode,
+    trackingUrl: trackingUrl,
+    shipmentMethodName: shipmentMethodName,
+    shipmentMethodUid: "unknown", // Not provided in this event
+    fulfillmentCountry: "unknown", // Not provided in this event
+    fulfillmentStateProvince: "unknown", // Not provided in this event
+    fulfillmentFacilityId: "unknown" // Not provided in this event
+  };
+
+  if (existingIndex >= 0) {
+    trackingInfo[existingIndex] = newTracking;
+  } else {
+    trackingInfo.push(newTracking);
+  }
+
+  // Update order with tracking information
   await db
     .update(order)
     .set({
-      status: mappedStatus,
+      trackingCodes: trackingInfo,
+      status: ORDER_STATUS.SHIPPED
     })
-    .where(eq(order.gelatoOrderId, orderId));
+    .where(eq(order.gelatoReferenceId, orderReferenceId));
+}
+
+export async function handleDeliveryEstimateUpdate(
+  orderReferenceId: string,
+  minDeliveryDate: string,
+  maxDeliveryDate: string
+) {
+  await db
+    .update(order)
+    .set({
+      deliveryEstimate: {
+        minDeliveryDate,
+        maxDeliveryDate
+      }
+    })
+    .where(eq(order.gelatoReferenceId, orderReferenceId));
 }

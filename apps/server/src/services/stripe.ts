@@ -40,6 +40,31 @@ export async function createCheckoutSession({
   // Create Stripe checkout session
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
+    shipping_address_collection: {
+      allowed_countries: ['US', 'CA', 'GB', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'SE', 'NO', 'FI', 'DK', 'BE', 'AT', 'CH', 'PT', 'IE', 'NZ', 'SG', 'JP'],
+    },
+    shipping_options: [
+      {
+        shipping_rate_data: {
+          type: "fixed_amount",
+          fixed_amount: {
+            amount: 0,
+            currency: TSHIRT_PRODUCT.currency.toLowerCase(),
+          },
+          display_name: "Free Shipping",
+          delivery_estimate: {
+            minimum: {
+              unit: "business_day",
+              value: 5,
+            },
+            maximum: {
+              unit: "business_day",
+              value: 10,
+            },
+          },
+        },
+      },
+    ],
     line_items: [
       {
         price_data: {
