@@ -160,6 +160,8 @@ export async function createGelatoOrder(orderId: string) {
   });
 
   if (!response.ok) {
+    const errorBody = await response.text();
+    console.error("Gelato API error response:", errorBody);
     throw new Error(`Gelato API error: ${response.status} ${response.statusText}`);
   }
 
