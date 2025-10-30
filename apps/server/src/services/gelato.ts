@@ -88,7 +88,10 @@ export interface GelatoOrderData {
   items: Array<{
     itemReferenceId: string;
     productUid: string;
-    fileUrl: string;
+    files: Array<{
+      type: string;
+      url: string;
+    }>;
     quantity: number;
   }>;
   shipmentMethodUid: string;
@@ -121,7 +124,12 @@ export async function createGelatoOrder(orderId: string) {
       {
         itemReferenceId: `item_${orderRecord.id}`,
         productUid: orderRecord.productUid,
-        fileUrl: orderRecord.fileUrl || "",
+        files: [
+          {
+            type: "default",
+            url: orderRecord.fileUrl || "",
+          },
+        ],
         quantity: orderRecord.quantity,
       },
     ],

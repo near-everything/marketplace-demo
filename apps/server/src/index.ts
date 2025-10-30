@@ -69,7 +69,7 @@ app.post("/api/stripe/webhook", async (c) => {
             state: shippingDetails.address?.state || '',
             postCode: shippingDetails.address?.postal_code || '',
             country: shippingDetails.address?.country || '',
-            email: fullSession.customer_details?.email ? fullSession.customer_details.email : undefined,
+            email: "orders@demo.everything.market",
             phone: undefined,
           });
         } else {
