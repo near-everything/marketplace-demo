@@ -53,6 +53,13 @@ app.post("/api/stripe/webhook", async (c) => {
         // Retrieve the full session with expanded shipping details
         const fullSession = await stripe.checkout.sessions.retrieve(session.id);
 
+        console.log('=== STRIPE SESSION DEBUG ===');
+        console.log('Session ID:', fullSession.id);
+        console.log('Customer email (top-level):', fullSession.customer_email);
+        console.log('Customer details:', JSON.stringify(fullSession.customer_details, null, 2));
+        console.log('Collected information:', JSON.stringify(fullSession.collected_information, null, 2));
+        console.log('========================');
+
         // Extract and validate shipping address from Stripe
         const shippingDetails = fullSession.collected_information?.shipping_details;
         let shippingAddress = null;
