@@ -8,7 +8,7 @@ import { appRouter } from "./routers";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { db } from "./db";
 import { RPCHandler } from "@orpc/server/fetch";
-import { verifyWebhookSignature as verifyStripeWebhook } from "./services/stripe";
+import { stripe, verifyWebhookSignature as verifyStripeWebhook } from "./services/stripe";
 import { createGelatoOrder, handleOrderStatusUpdate, handleTrackingCodeUpdate, handleDeliveryEstimateUpdate, verifyWebhookSignature, type OrderItemFulfillment } from "./services/gelato";
 import { ShippingAddressSchema } from "./lib/schemas";
 import { order } from "./db/schema/orders";
@@ -50,8 +50,13 @@ app.post("/api/stripe/webhook", async (c) => {
       const orderId = session.metadata?.orderId;
 
       if (orderId) {
+        // Retrieve the full session with expanded shipping details
+        const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+          expand: ['shipping_details', 'customer_details']
+        });
+
         // Extract and validate shipping address from Stripe
-        const shippingDetails = session.shipping_details;
+        const shippingDetails = fullSession.shipping_details;
         let shippingAddress = null;
 
         if (shippingDetails) {
@@ -66,9 +71,19 @@ app.post("/api/stripe/webhook", async (c) => {
             state: shippingDetails.address?.state || '',
             postCode: shippingDetails.address?.postal_code || '',
             country: shippingDetails.address?.country || '',
-            email: session.customer_details?.email || '',
-            phone: session.customer_details?.phone || '',
+            email: fullSession.customer_details?.email || '',
+            phone: fullSession.customer_details?.phone || '',
           });
+        } else {
+          console.error("No shipping details available for session:", session.id);
+          // Update order status to paid but don't create Gelato order without shipping address
+          await db
+            .update(order)
+            .set({
+              status: "paid",
+            })
+            .where(eq(order.id, orderId));
+          return c.json({ received: true });
         }
 
         // Update order status to paid and store shipping address

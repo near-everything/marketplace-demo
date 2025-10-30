@@ -4,7 +4,7 @@ import { order } from "../db/schema/orders";
 import { TSHIRT_PRODUCT } from "../lib/constants";
 import { eq } from "drizzle-orm";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-09-30.clover",
 });
 
