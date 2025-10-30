@@ -13,7 +13,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authenticated'
-import { Route as ApiRpcSplatRouteImport } from './routes/api/rpc.$'
 import { Route as LayoutProfileAccountIdRouteImport } from './routes/_layout/profile/$accountId'
 import { Route as LayoutAuthenticatedShopRouteImport } from './routes/_layout/_authenticated/shop'
 import { Route as LayoutAuthenticatedDashboardRouteImport } from './routes/_layout/_authenticated/dashboard'
@@ -36,11 +35,6 @@ const LayoutIndexRoute = LayoutIndexRouteImport.update({
 const LayoutAuthenticatedRoute = LayoutAuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => LayoutRoute,
-} as any)
-const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
-  id: '/api/rpc/$',
-  path: '/api/rpc/$',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const LayoutProfileAccountIdRoute = LayoutProfileAccountIdRouteImport.update({
   id: '/profile/$accountId',
@@ -72,7 +66,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof LayoutAuthenticatedDashboardRoute
   '/shop': typeof LayoutAuthenticatedShopRoute
   '/profile/$accountId': typeof LayoutProfileAccountIdRoute
-  '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -81,7 +74,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof LayoutAuthenticatedDashboardRoute
   '/shop': typeof LayoutAuthenticatedShopRoute
   '/profile/$accountId': typeof LayoutProfileAccountIdRoute
-  '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,7 +85,6 @@ export interface FileRoutesById {
   '/_layout/_authenticated/dashboard': typeof LayoutAuthenticatedDashboardRoute
   '/_layout/_authenticated/shop': typeof LayoutAuthenticatedShopRoute
   '/_layout/profile/$accountId': typeof LayoutProfileAccountIdRoute
-  '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -104,7 +95,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/shop'
     | '/profile/$accountId'
-    | '/api/rpc/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -113,7 +103,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/shop'
     | '/profile/$accountId'
-    | '/api/rpc/$'
   id:
     | '__root__'
     | '/_layout'
@@ -124,13 +113,11 @@ export interface FileRouteTypes {
     | '/_layout/_authenticated/dashboard'
     | '/_layout/_authenticated/shop'
     | '/_layout/profile/$accountId'
-    | '/api/rpc/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   LayoutRoute: typeof LayoutRouteWithChildren
   LoginRoute: typeof LoginRoute
-  ApiRpcSplatRoute: typeof ApiRpcSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -162,13 +149,6 @@ declare module '@tanstack/react-router' {
       fullPath: ''
       preLoaderRoute: typeof LayoutAuthenticatedRouteImport
       parentRoute: typeof LayoutRoute
-    }
-    '/api/rpc/$': {
-      id: '/api/rpc/$'
-      path: '/api/rpc/$'
-      fullPath: '/api/rpc/$'
-      preLoaderRoute: typeof ApiRpcSplatRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_layout/profile/$accountId': {
       id: '/_layout/profile/$accountId'
@@ -235,7 +215,6 @@ const LayoutRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   LayoutRoute: LayoutRouteWithChildren,
   LoginRoute: LoginRoute,
-  ApiRpcSplatRoute: ApiRpcSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
