@@ -15,6 +15,7 @@ import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
 import { Route as LayoutAuthenticatedRouteImport } from './routes/_layout/_authenticated'
 import { Route as LayoutProfileAccountIdRouteImport } from './routes/_layout/profile/$accountId'
 import { Route as LayoutAuthenticatedShopRouteImport } from './routes/_layout/_authenticated/shop'
+import { Route as LayoutAuthenticatedOrdersRouteImport } from './routes/_layout/_authenticated/orders'
 import { Route as LayoutAuthenticatedDashboardRouteImport } from './routes/_layout/_authenticated/dashboard'
 import { Route as LayoutAuthenticatedCheckoutSuccessRouteImport } from './routes/_layout/_authenticated/checkout-success'
 
@@ -46,6 +47,12 @@ const LayoutAuthenticatedShopRoute = LayoutAuthenticatedShopRouteImport.update({
   path: '/shop',
   getParentRoute: () => LayoutAuthenticatedRoute,
 } as any)
+const LayoutAuthenticatedOrdersRoute =
+  LayoutAuthenticatedOrdersRouteImport.update({
+    id: '/orders',
+    path: '/orders',
+    getParentRoute: () => LayoutAuthenticatedRoute,
+  } as any)
 const LayoutAuthenticatedDashboardRoute =
   LayoutAuthenticatedDashboardRouteImport.update({
     id: '/dashboard',
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
   '/checkout-success': typeof LayoutAuthenticatedCheckoutSuccessRoute
   '/dashboard': typeof LayoutAuthenticatedDashboardRoute
+  '/orders': typeof LayoutAuthenticatedOrdersRoute
   '/shop': typeof LayoutAuthenticatedShopRoute
   '/profile/$accountId': typeof LayoutProfileAccountIdRoute
 }
@@ -72,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof LayoutIndexRoute
   '/checkout-success': typeof LayoutAuthenticatedCheckoutSuccessRoute
   '/dashboard': typeof LayoutAuthenticatedDashboardRoute
+  '/orders': typeof LayoutAuthenticatedOrdersRoute
   '/shop': typeof LayoutAuthenticatedShopRoute
   '/profile/$accountId': typeof LayoutProfileAccountIdRoute
 }
@@ -83,6 +92,7 @@ export interface FileRoutesById {
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/_authenticated/checkout-success': typeof LayoutAuthenticatedCheckoutSuccessRoute
   '/_layout/_authenticated/dashboard': typeof LayoutAuthenticatedDashboardRoute
+  '/_layout/_authenticated/orders': typeof LayoutAuthenticatedOrdersRoute
   '/_layout/_authenticated/shop': typeof LayoutAuthenticatedShopRoute
   '/_layout/profile/$accountId': typeof LayoutProfileAccountIdRoute
 }
@@ -93,6 +103,7 @@ export interface FileRouteTypes {
     | '/'
     | '/checkout-success'
     | '/dashboard'
+    | '/orders'
     | '/shop'
     | '/profile/$accountId'
   fileRoutesByTo: FileRoutesByTo
@@ -101,6 +112,7 @@ export interface FileRouteTypes {
     | '/'
     | '/checkout-success'
     | '/dashboard'
+    | '/orders'
     | '/shop'
     | '/profile/$accountId'
   id:
@@ -111,6 +123,7 @@ export interface FileRouteTypes {
     | '/_layout/'
     | '/_layout/_authenticated/checkout-success'
     | '/_layout/_authenticated/dashboard'
+    | '/_layout/_authenticated/orders'
     | '/_layout/_authenticated/shop'
     | '/_layout/profile/$accountId'
   fileRoutesById: FileRoutesById
@@ -164,6 +177,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutAuthenticatedShopRouteImport
       parentRoute: typeof LayoutAuthenticatedRoute
     }
+    '/_layout/_authenticated/orders': {
+      id: '/_layout/_authenticated/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof LayoutAuthenticatedOrdersRouteImport
+      parentRoute: typeof LayoutAuthenticatedRoute
+    }
     '/_layout/_authenticated/dashboard': {
       id: '/_layout/_authenticated/dashboard'
       path: '/dashboard'
@@ -184,6 +204,7 @@ declare module '@tanstack/react-router' {
 interface LayoutAuthenticatedRouteChildren {
   LayoutAuthenticatedCheckoutSuccessRoute: typeof LayoutAuthenticatedCheckoutSuccessRoute
   LayoutAuthenticatedDashboardRoute: typeof LayoutAuthenticatedDashboardRoute
+  LayoutAuthenticatedOrdersRoute: typeof LayoutAuthenticatedOrdersRoute
   LayoutAuthenticatedShopRoute: typeof LayoutAuthenticatedShopRoute
 }
 
@@ -191,6 +212,7 @@ const LayoutAuthenticatedRouteChildren: LayoutAuthenticatedRouteChildren = {
   LayoutAuthenticatedCheckoutSuccessRoute:
     LayoutAuthenticatedCheckoutSuccessRoute,
   LayoutAuthenticatedDashboardRoute: LayoutAuthenticatedDashboardRoute,
+  LayoutAuthenticatedOrdersRoute: LayoutAuthenticatedOrdersRoute,
   LayoutAuthenticatedShopRoute: LayoutAuthenticatedShopRoute,
 }
 

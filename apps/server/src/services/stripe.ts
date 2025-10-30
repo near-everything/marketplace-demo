@@ -108,5 +108,5 @@ export async function verifyWebhookSignature(
   signature: string,
   secret: string
 ) {
-  return stripe.webhooks.constructEvent(body, signature, secret);
+  return stripe.webhooks.constructEventAsync(body, signature, secret);
 }
