@@ -69,8 +69,8 @@ app.post("/api/stripe/webhook", async (c) => {
             state: shippingDetails.address?.state || '',
             postCode: shippingDetails.address?.postal_code || '',
             country: shippingDetails.address?.country || '',
-            email: fullSession.customer_details?.email || '',
-            phone: fullSession.customer_details?.phone || '',
+            email: fullSession.customer_details?.email ? fullSession.customer_details.email : undefined,
+            phone: undefined,
           });
         } else {
           console.error("No shipping details available for session:", session.id);
