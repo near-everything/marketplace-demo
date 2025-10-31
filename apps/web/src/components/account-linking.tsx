@@ -3,6 +3,7 @@ import { handleAccountLinkRefresh } from "@/lib/auth-utils";
 import { Focus, UserMinus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { queryClient } from "@/utils/orpc";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
@@ -56,6 +57,8 @@ export default function AccountLinking() {
       const accountsResponse = await authClient.listAccounts();
       setLinkedAccounts(accountsResponse.data || []);
       setError(null);
+      // Invalidate queries to refresh data after account changes
+      queryClient.invalidateQueries();
     } catch (err) {
       console.error("Failed to fetch linked accounts:", err);
       setError("Failed to load linked accounts");
@@ -164,9 +167,10 @@ export default function AccountLinking() {
         providerId,
       });
       toast.success("Account unlinked successfully");
-      // Refresh accounts list
+      // Refresh accounts list and invalidate queries
       const accountsResponse = await authClient.listAccounts();
       setLinkedAccounts(accountsResponse.data || []);
+      queryClient.invalidateQueries();
     } catch (error) {
       console.error("Failed to unlink account:", error);
       toast.error("Failed to unlink account");

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import Loader from "./loader";
 import { Button } from "./ui/button";
+import { queryClient } from "@/utils/orpc";
 
 export default function SignInForm() {
   const navigate = useNavigate({
@@ -56,6 +57,8 @@ export default function SignInForm() {
         {
           onSuccess: () => {
             setIsSigningInWithNear(false);
+            // Invalidate all queries to ensure fresh data after authentication
+            queryClient.invalidateQueries();
             navigate({
               to: search.redirect || "/dashboard",
               replace: true,
@@ -97,6 +100,8 @@ export default function SignInForm() {
     try {
       await authClient.signOut();
       await authClient.near.disconnect();
+      // Invalidate all queries to ensure fresh data after sign out
+      queryClient.invalidateQueries();
       setIsDisconnectingWallet(false);
       toast.success("Wallet disconnected successfully");
     } catch (error) {

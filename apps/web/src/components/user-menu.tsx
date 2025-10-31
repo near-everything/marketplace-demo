@@ -14,6 +14,7 @@ import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
 import { useEffect, useState } from "react";
 import { getNearAccountId } from "@/lib/auth-utils";
+import { queryClient } from "@/utils/orpc";
 
 export default function UserMenu() {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export default function UserMenu() {
     if (session) {
       fetchAccounts();
     }
-  }, [session]);
+  }, [session, queryClient]);
 
   const nearAccountId = getNearAccountId(linkedAccounts);
 
@@ -80,6 +81,8 @@ export default function UserMenu() {
                 await authClient.signOut({
                   fetchOptions: {
                     onSuccess: async () => {
+                      // Invalidate all queries before navigation
+                      queryClient.invalidateQueries();
                       await authClient.near.disconnect(); // TODO: this could be moved to signOut
                       navigate({
                         to: "/",
@@ -89,7 +92,8 @@ export default function UserMenu() {
                 });
               } catch (error) {
                 console.error("Sign out error:", error);
-                // Still navigate even if wallet disconnect fails
+                // Invalidate queries and navigate even if wallet disconnect fails
+                queryClient.invalidateQueries();
                 navigate({
                   to: "/",
                 });
