@@ -1,10 +1,22 @@
 import { renderToString } from 'react-dom/server';
 import { StrictMode } from 'react';
-import App from './App';
-import ComponentShowcase from './ComponentShowcase';
+import Main from './main';
+import Components from './components';
+import NotFound from './not-found';
+
+const getRouteComponent = (pathname: string) => {
+  switch (pathname) {
+    case '/':
+      return Main;
+    case '/components':
+      return Components;
+    default:
+      return NotFound;
+  }
+};
 
 export function render(pathname: string): string {
-  const Component = pathname === '/components' ? ComponentShowcase : App;
+  const Component = getRouteComponent(pathname);
 
   return renderToString(
     <StrictMode>
@@ -13,4 +25,4 @@ export function render(pathname: string): string {
   );
 }
 
-export { App, ComponentShowcase };
+export { Main, Components, NotFound };

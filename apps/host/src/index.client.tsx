@@ -1,7 +1,7 @@
-import { createRoot } from 'react-dom/client';
 import { StrictMode } from 'react';
-import App from './App';
-import ComponentShowcase from './ComponentShowcase';
+import { createRoot } from 'react-dom/client';
+import Components from './components';
+import Main from './main';
 
 const rootElement = document.getElementById('root');
 
@@ -11,7 +11,14 @@ if (!rootElement) {
 
 const pathname = window.location.pathname;
 
-const RootComponent = pathname === '/components' ? ComponentShowcase : App;
+const getRouteComponent = () => {
+  if (pathname === '/components') {
+    return Components;
+  }
+  return Main;
+};
+
+const RootComponent = getRouteComponent();
 
 createRoot(rootElement).render(
   <StrictMode>

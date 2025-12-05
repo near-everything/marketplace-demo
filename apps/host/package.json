@@ -9,9 +9,12 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
+    "@hot-labs/near-connect": "^0.6.11",
     "@module-federation/enhanced": "^0.21.6",
     "@module-federation/rsbuild-plugin": "^0.21.6",
     "@module-federation/runtime": "^0.21.6",
+    "@tanstack/react-query": "^5.90.11",
+    "@tanstack/react-router": "^1.139.14",
     "hono": "^4.6.0",
     "near-kit": "^0.6.2",
     "near-social-js": "^2.0.2",

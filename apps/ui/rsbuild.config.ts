@@ -43,6 +43,11 @@ export default defineConfig({
           eager: true,
           requiredVersion: pkg.dependencies['@tanstack/react-router'],
         },
+        '@hot-labs/near-connect': {
+          singleton: true,
+          eager: false,
+          requiredVersion: pkg.dependencies['@hot-labs/near-connect'],
+        },
         'near-kit': {
           singleton: true,
           eager: false,

@@ -2,6 +2,7 @@ import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginModuleFederation } from '@module-federation/rsbuild-plugin';
 import fs from 'node:fs';
+import pkg from './package.json';
 
 const remotesConfig = JSON.parse(fs.readFileSync('./remotes.json', 'utf-8'));
 
@@ -28,24 +29,32 @@ export default defineConfig({
         react: {
           singleton: true,
           eager: true,
-          requiredVersion: '^19.2.0',
+          requiredVersion: pkg.dependencies.react,
         },
         'react-dom': {
           singleton: true,
           eager: true,
-          requiredVersion: '^19.2.0',
+          requiredVersion: pkg.dependencies['react-dom'],
         },
         '@tanstack/react-query': {
           singleton: true,
           eager: true,
+          requiredVersion: pkg.dependencies['@tanstack/react-query'],
         },
         '@tanstack/react-router': {
           singleton: true,
           eager: true,
+          requiredVersion: pkg.dependencies['@tanstack/react-router'],
+        },
+        '@hot-labs/near-connect': {
+          singleton: true,
+          eager: false,
+          requiredVersion: pkg.dependencies['@hot-labs/near-connect'],
         },
         'near-kit': {
           singleton: true,
           eager: false,
+          requiredVersion: pkg.dependencies['near-kit'],
         },
       },
     }),
