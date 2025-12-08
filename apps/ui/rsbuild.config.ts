@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     pluginReact(),
     pluginModuleFederation({
-      name: 'near_social_js',
+      name: 'marketplace',
       filename: 'remoteEntry.js',
       dts: false,
       exposes: {
@@ -16,7 +16,6 @@ export default defineConfig({
         './Router': './src/router.tsx',
         './components': './src/components/index.ts',
         './providers': './src/providers/index.tsx',
-        './hooks/wallet': './src/integrations/near-wallet/index.ts',
         './types': './src/types/index.ts',
       },
       shared: {

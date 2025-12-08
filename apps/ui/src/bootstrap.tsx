@@ -1,8 +1,8 @@
 import { StrictMode } from 'react';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
+import { Toaster } from 'sonner';
 
 import * as TanStackQueryProvider from './integrations/tanstack-query/root-provider.tsx';
-import { WalletProvider } from './integrations/near-wallet/index.ts';
 
 import { routeTree } from './routeTree.gen.ts';
 
@@ -30,9 +30,8 @@ export function App() {
   return (
     <StrictMode>
       <TanStackQueryProvider.Provider {...TanStackQueryProviderContext}>
-        <WalletProvider network="mainnet">
-          <RouterProvider router={router} />
-        </WalletProvider>
+        <RouterProvider router={router} />
+        <Toaster position="top-center" richColors closeButton />
       </TanStackQueryProvider.Provider>
     </StrictMode>
   );

@@ -66,6 +66,33 @@ async function startServer() {
 
   apiApp.get('/', (c) => c.text('OK'))
 
+  const serverUrl = process.env.SERVER_URL || 'http://localhost:3000'
+
+  apiApp.all('/api/auth/*', async (c) => {
+    const url = new URL(c.req.url)
+    const targetUrl = `${serverUrl}${url.pathname}${url.search}`
+    
+    const headers = new Headers(c.req.raw.headers)
+    headers.delete('host')
+    
+    const response = await fetch(targetUrl, {
+      method: c.req.method,
+      headers,
+      body: c.req.method !== 'GET' && c.req.method !== 'HEAD' ? c.req.raw.body : undefined,
+      redirect: 'manual',
+      // @ts-expect-error duplex is required for streaming body
+      duplex: 'half',
+    })
+
+    const responseHeaders = new Headers(response.headers)
+    
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+    })
+  })
+
   apiApp.all('/api/rpc/*', async (c) => {
     const req = c.req.raw
     const context = await createContext(req)
