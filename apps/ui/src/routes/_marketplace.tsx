@@ -21,6 +21,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useCart } from '@/hooks/use-cart';
 import { useFavorites } from '@/hooks/use-favorites';
 import { COLLECTIONS } from '@/data/products';
+import { authClient } from '@/lib/auth-client';
 
 export const Route = createFileRoute('/_marketplace')({
   component: MarketplaceLayout,
@@ -31,6 +32,7 @@ function MarketplaceLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { totalCount: cartCount } = useCart();
   const { count: favoritesCount } = useFavorites();
+  const { data: session, isPending } = authClient.useSession();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,11 +108,23 @@ function MarketplaceLayout() {
               </Button>
             </Link>
 
-            <Link to="/account">
-              <Button variant="ghost" size="icon">
+            {isPending ? (
+              <Button variant="ghost" size="icon" disabled>
                 <User className="h-5 w-5" />
               </Button>
-            </Link>
+            ) : session ? (
+              <Link to="/account">
+                <Button variant="ghost" size="icon">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/login">
+                <Button variant="ghost" className="text-sm">
+                  Login
+                </Button>
+              </Link>
+            )}
 
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
