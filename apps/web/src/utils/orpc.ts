@@ -8,7 +8,7 @@ import { getRequestHeaders } from "@tanstack/react-start/server";
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { onError } from "@orpc/server";
-import type { AppRouter } from "../../../server/src/routers";
+import type { AppRouter } from "../../../host/src/routers";
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({

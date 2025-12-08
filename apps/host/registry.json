@@ -1,0 +1,13 @@
+{
+  "plugins": {
+    "@data-provider/aggregator": {
+      "remote": "https://cdn.example.com/plugins/aggregator/remoteEntry.js",
+      "variables": {
+        "baseUrl": "https://example.com"
+      },
+      "secrets": {
+        "REDIS_URL": "{{REDIS_URL}}"
+      }
+    }
+  }
+}
