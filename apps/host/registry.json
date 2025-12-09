@@ -1,9 +1,8 @@
 {
   "plugins": {
     "marketplace-api": {
-      "remote": "https://elliot-braem-1035-marketplace-api-marketplace-plu-fcbff6bc9-ze.zephyrcloud.app",
-      "variables": {
-      },
+      "remote": "https://elliot-braem-1037-marketplace-api-marketplace-plu-e1c4ede2c-ze.zephyrcloud.app",
+      "variables": {},
       "secrets": {
         "relayerAccountId": "{{RELAYER_ACCOUNT_ID}}",
         "relayerPrivateKey": "{{RELAYER_PRIVATE_KEY}}",

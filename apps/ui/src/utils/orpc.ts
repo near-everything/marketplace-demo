@@ -4,7 +4,7 @@ import { QueryCache, QueryClient } from '@tanstack/react-query';
 import type { ContractRouterClient } from '@orpc/contract';
 import type { contract } from '../../../api/src/contract';
 
-export const API_URL = `${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/rpc`;
+export const API_URL = `${import.meta.env.VITE_API_URL ?? 'http://localhost:3001'}/api/rpc`;
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
