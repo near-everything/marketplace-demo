@@ -99,6 +99,46 @@ async function startServer() {
     });
   });
 
+  apiApp.post('/api/webhooks/stripe', async (c) => {
+    const req = c.req.raw;
+    const body = await c.req.text();
+    const signature = c.req.header('stripe-signature') || '';
+    const context = await createContext(req);
+
+    const result = await apiHandler.handle(
+      new Request(`${req.url.replace('/api/webhooks/stripe', '/api/webhooks/stripe')}`, {
+        method: 'POST',
+        headers: req.headers,
+        body: JSON.stringify({ body, signature }),
+      }),
+      { prefix: '/api', context }
+    );
+
+    return result.response
+      ? c.newResponse(result.response.body, result.response)
+      : c.text('Not Found', 404);
+  });
+
+  apiApp.post('/api/webhooks/fulfillment', async (c) => {
+    const req = c.req.raw;
+    const body = await c.req.text();
+    const signature = c.req.header('x-gelato-signature') || '';
+    const context = await createContext(req);
+
+    const result = await apiHandler.handle(
+      new Request(`${req.url.replace('/api/webhooks/fulfillment', '/api/webhooks/fulfillment')}`, {
+        method: 'POST',
+        headers: req.headers,
+        body: JSON.stringify({ body, signature }),
+      }),
+      { prefix: '/api', context }
+    );
+
+    return result.response
+      ? c.newResponse(result.response.body, result.response)
+      : c.text('Not Found', 404);
+  });
+
   apiApp.all('/api/rpc/*', async (c) => {
     const req = c.req.raw;
     const context = await createContext(req);

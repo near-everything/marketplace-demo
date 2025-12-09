@@ -2,11 +2,26 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductCard } from '@/components/marketplace/product-card';
-import { allProducts, COLLECTIONS } from '@/data/products';
+import { LoadingSpinner } from '@/components/loading';
 import { useCart } from '@/hooks/use-cart';
 import { useFavorites } from '@/hooks/use-favorites';
+import {
+  useSuspenseFeaturedProducts,
+  useSuspenseCollections,
+  productLoaders,
+  collectionLoaders,
+  type ProductCategory,
+} from '@/integrations/marketplace-api';
+import { queryClient } from '@/utils/orpc';
 
 export const Route = createFileRoute('/_marketplace/')({
+  pendingComponent: LoadingSpinner,
+  loader: async () => {
+    await Promise.all([
+      queryClient.ensureQueryData(productLoaders.featured(8)),
+      queryClient.ensureQueryData(collectionLoaders.list()),
+    ]);
+  },
   component: MarketplaceHome,
 });
 
@@ -14,7 +29,11 @@ function MarketplaceHome() {
   const { addToCart } = useCart();
   const { favoriteIds, toggleFavorite } = useFavorites();
 
-  const featuredProducts = allProducts.slice(0, 8);
+  const { data: featuredData } = useSuspenseFeaturedProducts(8);
+  const { data: collectionsData } = useSuspenseCollections();
+
+  const featuredProducts = featuredData.products;
+  const collections = collectionsData.collections;
 
   return (
     <div>
@@ -57,22 +76,22 @@ function MarketplaceHome() {
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {COLLECTIONS.map((collection) => (
-              <Link
-                key={collection}
-                to="/collections/$collection"
-                params={{ collection: collection.toLowerCase() }}
-                className="group relative aspect-square rounded-[16px] overflow-hidden bg-[#f3f3f5]"
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-4 left-4 text-white">
-                  <h3 className="font-semibold text-lg">{collection}</h3>
-                  <p className="text-sm text-white/70">
-                    {allProducts.filter((p) => p.category === collection).length} items
-                  </p>
-                </div>
-              </Link>
-            ))}
+            {collections.map((collection) => {
+              const category = collection.slug.charAt(0).toUpperCase() + collection.slug.slice(1) as ProductCategory;
+              return (
+                <Link
+                  key={collection.slug}
+                  to="/collections/$collection"
+                  params={{ collection: collection.slug }}
+                  className="group relative aspect-square rounded-[16px] overflow-hidden bg-[#f3f3f5]"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute bottom-4 left-4 text-white">
+                    <h3 className="font-semibold text-lg">{collection.name}</h3>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </section>

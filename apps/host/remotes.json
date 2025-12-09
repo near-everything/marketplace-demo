@@ -1,8 +1,8 @@
 {
   "title": "Merch",
   "remotes": {
-    "marketplace-ui": {
-      "url": "https://elliot-braem-1032-near-social-js-ui-near-social-j-6efa4bd9f-ze.zephyrcloud.app",
+    "marketplace_ui": {
+      "url": "https://elliot-braem-1034-marketplace-ui-marketplace-plug-a840f7945-ze.zephyrcloud.app",
       "displayName": "Merch",
       "registryPath": "/r/registry.json",
       "exposes": {

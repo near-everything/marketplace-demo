@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, Minus, Plus, X, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
-import { SIZES } from '@/data/products';
+import { SIZES } from '@/integrations/marketplace-api';
 
 export const Route = createFileRoute('/_marketplace/cart')({
   component: CartPage,
@@ -55,7 +55,7 @@ function CartPage() {
                         <div className="flex-1 min-w-0 pr-4">
                           <Link
                             to="/products/$productId"
-                            params={{ productId: String(item.productId) }}
+                            params={{ productId: item.productId }}
                             className="hover:text-[#00ec97] transition-colors"
                           >
                             <h3 className="text-base tracking-[-0.48px] truncate">

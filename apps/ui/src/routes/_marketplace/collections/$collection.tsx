@@ -2,26 +2,31 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { ArrowLeft, Heart, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  type ProductCategory,
-  COLLECTIONS, 
-  getProductsByCategory,
-  type Product,
-} from '@/data/products';
+import { LoadingSpinner } from '@/components/loading';
 import { useCart } from '@/hooks/use-cart';
 import { useFavorites } from '@/hooks/use-favorites';
 import { cn } from '@/lib/utils';
+import {
+  useSuspenseCollection,
+  collectionLoaders,
+  type Product,
+} from '@/integrations/marketplace-api';
+import { queryClient } from '@/utils/orpc';
 
 export const Route = createFileRoute('/_marketplace/collections/$collection')({
+  pendingComponent: LoadingSpinner,
+  loader: async ({ params }) => {
+    await queryClient.ensureQueryData(collectionLoaders.detail(params.collection));
+  },
   component: CollectionDetailPage,
 });
 
-const collectionData: Record<ProductCategory, {
+const collectionMetadata: Record<string, {
   title: string;
   description: string;
   features: string[];
 }> = {
-  Men: {
+  men: {
     title: "Men's Collection",
     description: 'Premium fits designed specifically for men. From classic essentials to modern oversized styles, each piece is crafted with attention to detail and comfort.',
     features: [
@@ -31,7 +36,7 @@ const collectionData: Record<ProductCategory, {
       'Durable Construction',
     ],
   },
-  Women: {
+  women: {
     title: "Women's Collection",
     description: 'Tailored fits designed for women. Comfortable, stylish, and sustainably made pieces that blend fashion with function.',
     features: [
@@ -41,7 +46,7 @@ const collectionData: Record<ProductCategory, {
       'Sustainable Materials',
     ],
   },
-  Exclusives: {
+  exclusives: {
     title: 'NEAR Legion Collection',
     description: "Limited edition designs created in collaboration with artists. Once they're gone, they're gone forever.",
     features: [
@@ -51,7 +56,7 @@ const collectionData: Record<ProductCategory, {
       'Collectible Pieces',
     ],
   },
-  Accessories: {
+  accessories: {
     title: 'Accessories',
     description: 'Complete your look with our curated selection. From everyday essentials to statement pieces.',
     features: [
@@ -64,15 +69,15 @@ const collectionData: Record<ProductCategory, {
 };
 
 function CollectionDetailPage() {
-  const { collection } = Route.useParams();
+  const { collection: collectionSlug } = Route.useParams();
   const { addToCart } = useCart();
   const { favoriteIds, toggleFavorite } = useFavorites();
 
-  const normalizedCollection = COLLECTIONS.find(
-    (c) => c.toLowerCase() === collection.toLowerCase()
-  );
+  const { data } = useSuspenseCollection(collectionSlug);
+  const { collection, products } = data;
+  const metadata = collectionMetadata[collectionSlug];
 
-  if (!normalizedCollection) {
+  if (!collection || !metadata) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -84,9 +89,6 @@ function CollectionDetailPage() {
       </div>
     );
   }
-
-  const data = collectionData[normalizedCollection];
-  const products = getProductsByCategory(normalizedCollection);
 
   return (
     <div className="bg-white min-h-screen w-full">
@@ -106,20 +108,20 @@ function CollectionDetailPage() {
         <div className="grid md:grid-cols-2">
           <div className="bg-[#ececf0] h-[400px] md:h-[529px] overflow-hidden">
             <div className="w-full h-full bg-gradient-to-br from-[#ececf0] to-[#d4d4d8] flex items-center justify-center">
-              <span className="text-8xl opacity-20">{normalizedCollection.charAt(0)}</span>
+              <span className="text-8xl opacity-20">{collection.name.charAt(0)}</span>
             </div>
           </div>
 
           <div className="border-l border-[rgba(0,0,0,0.1)] p-8 md:p-16 flex flex-col justify-center">
             <div className="space-y-8">
-              <h1 className="text-2xl font-medium tracking-[-0.48px]">{data.title}</h1>
+              <h1 className="text-2xl font-medium tracking-[-0.48px]">{metadata.title}</h1>
               
               <p className="text-[#717182] text-lg leading-7 tracking-[-0.48px]">
-                {data.description}
+                {metadata.description}
               </p>
 
               <div className="space-y-3">
-                {data.features.map((feature, index) => (
+                {metadata.features.map((feature, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <div className="w-1.5 h-1.5 bg-neutral-950 rounded-full" />
                     <p className="tracking-[-0.48px]">{feature}</p>
@@ -134,7 +136,7 @@ function CollectionDetailPage() {
                 </div>
                 <div>
                   <p className="text-[#717182] text-sm tracking-[-0.48px] mb-1">Category</p>
-                  <p className="tracking-[-0.48px]">{normalizedCollection}</p>
+                  <p className="tracking-[-0.48px]">{collection.name}</p>
                 </div>
               </div>
             </div>
@@ -146,10 +148,10 @@ function CollectionDetailPage() {
         <div className="max-w-[1408px] mx-auto px-4 md:px-8 lg:px-16">
           <div className="mb-12">
             <h2 className="text-xl font-medium text-neutral-950 mb-4 tracking-[-0.48px]">
-              All {data.title}
+              All {metadata.title}
             </h2>
             <p className="text-[#717182] tracking-[-0.48px]">
-              Browse our complete {normalizedCollection.toLowerCase()}'s collection
+              Browse our complete {collectionSlug}'s collection
             </p>
           </div>
 
@@ -189,8 +191,8 @@ function CollectionDetailPage() {
 interface CollectionProductCardProps {
   product: Product;
   isFavorite: boolean;
-  onToggleFavorite: (id: number) => void;
-  onAddToCart: (id: number) => void;
+  onToggleFavorite: (id: string) => void;
+  onAddToCart: (id: string) => void;
 }
 
 function CollectionProductCard({
@@ -209,7 +211,7 @@ function CollectionProductCard({
     >
       <Link
         to="/products/$productId"
-        params={{ productId: String(product.id) }}
+        params={{ productId: product.id }}
         className="block"
       >
         <div className="relative bg-[#ececf0] aspect-square overflow-hidden">

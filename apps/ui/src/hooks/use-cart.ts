@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { CartItem, Product } from '@/data/products';
-import { getProductById, requiresSize, allProducts } from '@/data/products';
+import {
+  useProductsByIds,
+  requiresSize,
+  type Product,
+  type CartItem,
+} from '@/integrations/marketplace-api';
 
 const CART_STORAGE_KEY = 'marketplace-cart';
 
@@ -9,7 +13,7 @@ export interface CartItemWithProduct extends CartItem {
 }
 
 export function useCart() {
-  const [items, setItems] = useState<Record<number, CartItem>>(() => {
+  const [items, setItems] = useState<Record<string, CartItem>>(() => {
     if (typeof window === 'undefined') return {};
     const stored = localStorage.getItem(CART_STORAGE_KEY);
     return stored ? JSON.parse(stored) : {};
@@ -19,7 +23,10 @@ export function useCart() {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
-  const addToCart = useCallback((productId: number, size = 'N/A') => {
+  const productIds = Object.keys(items);
+  const { data: products, isLoading } = useProductsByIds(productIds);
+
+  const addToCart = useCallback((productId: string, size = 'N/A') => {
     setItems((prev) => ({
       ...prev,
       [productId]: {
@@ -30,7 +37,7 @@ export function useCart() {
     }));
   }, []);
 
-  const updateQuantity = useCallback((productId: number, change: number) => {
+  const updateQuantity = useCallback((productId: string, change: number) => {
     setItems((prev) => {
       const current = prev[productId];
       if (!current) return prev;
@@ -48,7 +55,7 @@ export function useCart() {
     });
   }, []);
 
-  const updateSize = useCallback((productId: number, size: string) => {
+  const updateSize = useCallback((productId: string, size: string) => {
     setItems((prev) => {
       const current = prev[productId];
       if (!current) return prev;
@@ -59,7 +66,7 @@ export function useCart() {
     });
   }, []);
 
-  const removeItem = useCallback((productId: number) => {
+  const removeItem = useCallback((productId: string) => {
     setItems((prev) => {
       const { [productId]: _, ...rest } = prev;
       return rest;
@@ -70,10 +77,10 @@ export function useCart() {
     setItems({});
   }, []);
 
-  const cartItems: CartItemWithProduct[] = Object.values(items)
-    .map((item) => {
-      const product = getProductById(item.productId);
-      if (!product) return null;
+  const cartItems: CartItemWithProduct[] = products
+    .map((product) => {
+      const item = items[product.id];
+      if (!item) return null;
       return { ...item, product };
     })
     .filter(Boolean) as CartItemWithProduct[];
@@ -90,12 +97,12 @@ export function useCart() {
     cartItems,
     totalCount,
     subtotal,
+    isLoading,
     addToCart,
     updateQuantity,
     updateSize,
     removeItem,
     clearCart,
     requiresSize,
-    allProducts,
   };
 }

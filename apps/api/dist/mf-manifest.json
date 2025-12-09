@@ -1,0 +1,147 @@
+{
+  "id": "marketplace-api",
+  "name": "marketplace-api",
+  "metaData": {
+    "name": "marketplace-api",
+    "type": "app",
+    "buildInfo": {
+      "buildVersion": "0.0.1",
+      "buildName": "marketplace-api"
+    },
+    "remoteEntry": {
+      "name": "remoteEntry.js",
+      "path": "",
+      "type": "commonjs-module"
+    },
+    "types": {
+      "path": "",
+      "name": "",
+      "zip": "",
+      "api": ""
+    },
+    "globalName": "marketplace-api",
+    "pluginVersion": "0.19.1",
+    "prefetchInterface": false,
+    "publicPath": "auto"
+  },
+  "shared": [
+    {
+      "id": "marketplace-api:@orpc/contract",
+      "name": "@orpc/contract",
+      "version": "^1.10.0",
+      "singleton": true,
+      "requiredVersion": "^1.10.0",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "605.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      }
+    },
+    {
+      "id": "marketplace-api:@orpc/server",
+      "name": "@orpc/server",
+      "version": "^1.10.0",
+      "singleton": true,
+      "requiredVersion": "^1.10.0",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "304.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      }
+    },
+    {
+      "id": "marketplace-api:effect",
+      "name": "effect",
+      "version": "3.18.1",
+      "singleton": true,
+      "requiredVersion": "3.18.1",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "75.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      }
+    },
+    {
+      "id": "marketplace-api:every-plugin",
+      "name": "every-plugin",
+      "version": "0.6.2",
+      "singleton": true,
+      "requiredVersion": "0.6.2",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "110.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      }
+    },
+    {
+      "id": "marketplace-api:zod",
+      "name": "zod",
+      "version": "4.1.5",
+      "singleton": true,
+      "requiredVersion": "4.1.5",
+      "assets": {
+        "js": {
+          "async": [],
+          "sync": [
+            "149.js",
+            "785.js"
+          ]
+        },
+        "css": {
+          "async": [],
+          "sync": []
+        }
+      }
+    }
+  ],
+  "remotes": [],
+  "exposes": [
+    {
+      "id": "marketplace-api:plugin",
+      "name": "plugin",
+      "assets": {
+        "js": {
+          "sync": [
+            "345.js",
+            "256.js",
+            "__federation_expose_plugin.js"
+          ],
+          "async": []
+        },
+        "css": {
+          "sync": [],
+          "async": []
+        }
+      },
+      "path": "./plugin"
+    }
+  ]
+}

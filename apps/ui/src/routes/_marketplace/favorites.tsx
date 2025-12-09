@@ -55,7 +55,7 @@ function FavoritesPage() {
               >
                 <Link
                   to="/products/$productId"
-                  params={{ productId: String(product.id) }}
+                  params={{ productId: product.id }}
                   className="block"
                 >
                   <div className="w-full aspect-square bg-[#ececf0] overflow-hidden">
@@ -73,7 +73,7 @@ function FavoritesPage() {
                   </p>
                   <Link
                     to="/products/$productId"
-                    params={{ productId: String(product.id) }}
+                    params={{ productId: product.id }}
                     className="hover:text-[#00ec97] transition-colors"
                   >
                     <h4 className="text-sm text-neutral-950 mb-1 line-clamp-2">

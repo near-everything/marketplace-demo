@@ -1,14 +1,14 @@
 import { Link } from '@tanstack/react-router';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { Product } from '@/data/products';
+import { type Product } from '@/integrations/marketplace-api';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
   product: Product;
   isFavorite: boolean;
-  onToggleFavorite: (productId: number) => void;
-  onAddToCart: (productId: number) => void;
+  onToggleFavorite: (productId: string) => void;
+  onAddToCart: (productId: string) => void;
 }
 
 export function ProductCard({
@@ -21,7 +21,7 @@ export function ProductCard({
     <div className="group relative flex flex-col">
       <Link
         to="/products/$productId"
-        params={{ productId: String(product.id) }}
+        params={{ productId: product.id }}
         className="relative aspect-square overflow-hidden rounded-[8px] bg-[#f3f3f5]"
       >
         <img
@@ -53,7 +53,7 @@ export function ProductCard({
         </p>
         <Link
           to="/products/$productId"
-          params={{ productId: String(product.id) }}
+          params={{ productId: product.id }}
           className="font-medium text-sm line-clamp-2 hover:text-[#00ec97] transition-colors"
         >
           {product.name}

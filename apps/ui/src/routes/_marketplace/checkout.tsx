@@ -1,17 +1,16 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
-import { ChevronLeft, CreditCard } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { ChevronLeft, CreditCard } from 'lucide-react';
+import { useState } from 'react';
 
-export const Route = createFileRoute('/_marketplace/checkout')({
+export const Route = createFileRoute("/_marketplace/checkout")({
   component: CheckoutPage,
 });
 
 function CheckoutPage() {
   const navigate = useNavigate();
   const { cartItems, subtotal } = useCart();
-  const [discountCode, setDiscountCode] = useState('');
+  const [discountCode, setDiscountCode] = useState("");
 
   const tax = subtotal * 0.08;
   const total = subtotal + tax;
@@ -45,7 +44,9 @@ function CheckoutPage() {
       </div>
 
       <div className="max-w-[1408px] mx-auto px-4 md:px-8 lg:px-16 py-8">
-        <h1 className="text-2xl font-medium mb-8 tracking-[-0.48px]">Checkout</h1>
+        <h1 className="text-2xl font-medium mb-8 tracking-[-0.48px]">
+          Checkout
+        </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div className="border border-[rgba(0,0,0,0.1)] p-8">
@@ -65,7 +66,8 @@ function CheckoutPage() {
                     <div className="flex-1">
                       <p className="text-base mb-1">{item.product.name}</p>
                       <p className="text-sm text-[#717182]">
-                        {item.size !== 'N/A' && `Size: ${item.size} • `}Qty: {item.quantity}
+                        {item.size !== "N/A" && `Size: ${item.size} • `}Qty:{" "}
+                        {item.quantity}
                       </p>
                     </div>
                     <div className="text-base text-right">
@@ -116,17 +118,16 @@ function CheckoutPage() {
           </div>
 
           <div>
-            <h2 className="text-base font-medium mb-6">Choose Payment Method</h2>
+            <h2 className="text-base font-medium mb-6">
+              Choose Payment Method
+            </h2>
 
             <div className="space-y-6">
               <div className="w-full border border-neutral-200 p-6 text-left relative opacity-50 cursor-not-allowed">
                 <div className="flex items-start gap-3">
                   <div className="size-10 bg-[#00ec97] flex items-center justify-center flex-shrink-0">
                     <svg className="size-6" fill="none" viewBox="0 0 24 24">
-                      <path
-                        d="M12 2L2 7v10l10 5 10-5V7L12 2z"
-                        fill="black"
-                      />
+                      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" fill="black" />
                     </svg>
                   </div>
 
@@ -137,7 +138,9 @@ function CheckoutPage() {
                         COMING SOON
                       </span>
                     </div>
-                    <p className="text-xs text-[rgba(0,0,0,0.7)]">Recommended</p>
+                    <p className="text-xs text-[rgba(0,0,0,0.7)]">
+                      Recommended
+                    </p>
                   </div>
                 </div>
 

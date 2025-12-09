@@ -20,7 +20,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useCart } from '@/hooks/use-cart';
 import { useFavorites } from '@/hooks/use-favorites';
-import { COLLECTIONS } from '@/data/products';
+import { COLLECTIONS } from '@/integrations/marketplace-api';
 import { authClient } from '@/lib/auth-client';
 
 export const Route = createFileRoute('/_marketplace')({

@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/use-cart';
 import { useMutation } from '@tanstack/react-query';
-import { orpc } from '@/lib/orpc';
+import { apiClient } from '@/utils/orpc';
 import { toast } from 'sonner';
 import { authClient } from '@/lib/auth-client';
 
@@ -21,17 +21,22 @@ function StripeCheckoutPage() {
 
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      const result = await orpc.createCheckout({
+      const firstItem = cartItems[0];
+      if (!firstItem) throw new Error('Cart is empty');
+      
+      const result = await apiClient.createCheckout({
+        productId: firstItem.productId,
+        quantity: firstItem.quantity,
         successUrl: `${window.location.origin}/order-confirmation`,
         cancelUrl: `${window.location.origin}/checkout`,
       });
       return result;
     },
     onSuccess: (data) => {
-      if (data?.url) {
+      if (data?.checkoutUrl) {
         setIsRedirecting(true);
         clearCart();
-        window.location.href = data.url;
+        window.location.href = data.checkoutUrl;
       } else {
         toast.error('Failed to create checkout session');
       }

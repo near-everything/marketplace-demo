@@ -1,16 +1,16 @@
-declare module 'near_social_js_ui/App' {
+declare module 'marketplace_ui/App' {
   import type { FC } from 'react';
   export const App: FC;
   export default App;
 }
 
-declare module 'near_social_js_ui/Router' {
+declare module 'marketplace_ui/Router' {
   import type { FC } from 'react';
   export const AppRouter: FC;
   export default AppRouter;
 }
 
-declare module 'near_social_js_ui/components' {
+declare module 'marketplace_ui/components' {
   import type { FC, ComponentType } from 'react';
 
   export const ProfileCard: FC<{
@@ -37,7 +37,7 @@ declare module 'near_social_js_ui/components' {
   export const Tabs: ComponentType<Record<string, unknown>>;
 }
 
-declare module 'near_social_js_ui/profile' {
+declare module 'marketplace_ui/profile' {
   import type { FC } from 'react';
 
   export interface Profile {
@@ -56,7 +56,7 @@ declare module 'near_social_js_ui/profile' {
   }>;
 }
 
-declare module 'near_social_js_ui/providers' {
+declare module 'marketplace_ui/providers' {
   import type { FC, PropsWithChildren } from 'react';
 
   export const SocialProvider: FC<
@@ -69,7 +69,7 @@ declare module 'near_social_js_ui/providers' {
   export function createQueryClient(): unknown;
 }
 
-declare module 'near_social_js_ui/hooks/social' {
+declare module 'marketplace_ui/hooks/social' {
   export function useSocial(): unknown;
   export function useProfile(accountId: string): {
     data?: unknown;
@@ -85,7 +85,7 @@ declare module 'near_social_js_ui/hooks/social' {
   };
 }
 
-declare module 'near_social_js_ui/hooks/graph' {
+declare module 'marketplace_ui/hooks/graph' {
   export function useGraph(): unknown;
   export function useGraphGet(options: unknown): {
     data?: unknown;
@@ -97,7 +97,7 @@ declare module 'near_social_js_ui/hooks/graph' {
   };
 }
 
-declare module 'near_social_js_ui/hooks/wallet' {
+declare module 'marketplace_ui/hooks/wallet' {
   export function useWallet(): {
     accountId?: string;
     connect: () => void;

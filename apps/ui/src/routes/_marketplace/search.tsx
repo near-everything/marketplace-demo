@@ -1,15 +1,19 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { Heart, Plus } from 'lucide-react';
-import { 
-  allProducts, 
-  COLLECTIONS,
-  type Product,
-  type ProductCategory,
-} from '@/data/products';
+import { LoadingSpinner } from '@/components/loading';
 import { useCart } from '@/hooks/use-cart';
 import { useFavorites } from '@/hooks/use-favorites';
 import { cn } from '@/lib/utils';
+import {
+  useSearchProducts,
+  useProducts,
+  productLoaders,
+  COLLECTIONS,
+  type Product,
+  type ProductCategory,
+} from '@/integrations/marketplace-api';
+import { queryClient } from '@/utils/orpc';
 
 type SearchParams = {
   q?: string;
@@ -21,6 +25,9 @@ export const Route = createFileRoute('/_marketplace/search')({
     q: typeof search.q === 'string' ? search.q : undefined,
     category: typeof search.category === 'string' ? search.category : undefined,
   }),
+  loader: async () => {
+    await queryClient.ensureQueryData(productLoaders.list({ limit: 50 }));
+  },
   component: SearchPage,
 });
 
@@ -37,20 +44,19 @@ function SearchPage() {
 
   const filters = ['All', ...COLLECTIONS];
 
-  const searchFilteredProducts = q
-    ? allProducts.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q.toLowerCase()) ||
-          p.category.toLowerCase().includes(q.toLowerCase())
-      )
-    : allProducts;
+  const { data: searchData } = useSearchProducts(q || '', {
+    category: (activeFilter !== 'All' ? activeFilter : undefined) as ProductCategory | undefined,
+    limit: 50,
+  });
 
-  const filteredProducts =
-    activeFilter === 'All'
-      ? searchFilteredProducts
-      : searchFilteredProducts.filter((p) => p.category === activeFilter);
+  const { data: allProductsData } = useProducts({
+    category: (activeFilter !== 'All' ? activeFilter : undefined) as ProductCategory | undefined,
+    limit: 50,
+  });
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
+  const products = q ? (searchData?.products ?? []) : (allProductsData?.products ?? []);
+
+  const sortedProducts = [...products].sort((a, b) => {
     if (sortBy === 'Price: Low to High') return a.price - b.price;
     if (sortBy === 'Price: High to Low') return b.price - a.price;
     return 0;
@@ -128,8 +134,8 @@ function SearchPage() {
 interface SearchProductCardProps {
   product: Product;
   isFavorite: boolean;
-  onToggleFavorite: (id: number) => void;
-  onAddToCart: (id: number) => void;
+  onToggleFavorite: (id: string) => void;
+  onAddToCart: (id: string) => void;
 }
 
 function SearchProductCard({
@@ -148,7 +154,7 @@ function SearchProductCard({
     >
       <Link
         to="/products/$productId"
-        params={{ productId: String(product.id) }}
+        params={{ productId: product.id }}
         className="block"
       >
         <div className="relative bg-[#ececf0] aspect-square overflow-hidden">

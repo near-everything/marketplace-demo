@@ -6,7 +6,7 @@ import { Menu, X } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
 import { Button } from "./ui/button";
-import { orpc } from "@/utils/orpc";
+import { apiClient } from "@/utils/orpc";
 
 export default function Header() {
   const healthCheck = useQuery(orpc.healthCheck.queryOptions());

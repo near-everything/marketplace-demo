@@ -4,7 +4,7 @@ import { Guestbook } from "@/components/guestbook";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
-import { orpc } from "@/utils/orpc";
+import { apiClient } from "@/utils/orpc";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_layout/_authenticated/dashboard")({

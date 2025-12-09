@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { orpc } from "@/utils/orpc";
+import { apiClient } from "@/utils/orpc";
 
 export const Route = createFileRoute("/_layout/_authenticated/orders")({
   component: OrdersPage,

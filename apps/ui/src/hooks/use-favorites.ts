@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Product } from '@/data/products';
-import { getProductById } from '@/data/products';
+import { useProductsByIds, type Product } from '@/integrations/marketplace-api';
 
 const FAVORITES_STORAGE_KEY = 'marketplace-favorites';
 
 export function useFavorites() {
-  const [favoriteIds, setFavoriteIds] = useState<number[]>(() => {
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
     const stored = localStorage.getItem(FAVORITES_STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
@@ -15,7 +14,9 @@ export function useFavorites() {
     localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteIds));
   }, [favoriteIds]);
 
-  const toggleFavorite = useCallback((productId: number) => {
+  const { data: favorites, isLoading } = useProductsByIds(favoriteIds);
+
+  const toggleFavorite = useCallback((productId: string) => {
     setFavoriteIds((prev) => {
       if (prev.includes(productId)) {
         return prev.filter((id) => id !== productId);
@@ -24,19 +25,19 @@ export function useFavorites() {
     });
   }, []);
 
-  const addFavorite = useCallback((productId: number) => {
+  const addFavorite = useCallback((productId: string) => {
     setFavoriteIds((prev) => {
       if (prev.includes(productId)) return prev;
       return [...prev, productId];
     });
   }, []);
 
-  const removeFavorite = useCallback((productId: number) => {
+  const removeFavorite = useCallback((productId: string) => {
     setFavoriteIds((prev) => prev.filter((id) => id !== productId));
   }, []);
 
   const isFavorite = useCallback(
-    (productId: number) => favoriteIds.includes(productId),
+    (productId: string) => favoriteIds.includes(productId),
     [favoriteIds]
   );
 
@@ -44,14 +45,11 @@ export function useFavorites() {
     setFavoriteIds([]);
   }, []);
 
-  const favorites: Product[] = favoriteIds
-    .map((id) => getProductById(id))
-    .filter(Boolean) as Product[];
-
   return {
     favoriteIds,
     favorites,
     count: favoriteIds.length,
+    isLoading,
     toggleFavorite,
     addFavorite,
     removeFavorite,

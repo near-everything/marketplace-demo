@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
-import { queryClient } from "@/lib/orpc";
+import { queryClient } from "@/utils/orpc";
 
 export const Route = createFileRoute("/_marketplace/login")({
   beforeLoad: async () => {

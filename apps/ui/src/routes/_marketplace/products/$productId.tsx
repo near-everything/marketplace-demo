@@ -2,19 +2,26 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { ArrowLeft, Star, Minus, Plus, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  getProductById, 
-  getProductsByCategory, 
-  SIZES,
-  requiresSize,
-  type Product,
-} from '@/data/products';
+import { LoadingSpinner } from '@/components/loading';
 import { useCart } from '@/hooks/use-cart';
 import { useFavorites } from '@/hooks/use-favorites';
 import { cn } from '@/lib/utils';
 import { ImageViewer } from '@/components/marketplace/image-viewer';
+import {
+  useSuspenseProduct,
+  useProducts,
+  productLoaders,
+  SIZES,
+  requiresSize,
+  type Product,
+} from '@/integrations/marketplace-api';
+import { queryClient } from '@/utils/orpc';
 
 export const Route = createFileRoute('/_marketplace/products/$productId')({
+  pendingComponent: LoadingSpinner,
+  loader: async ({ params }) => {
+    await queryClient.ensureQueryData(productLoaders.detail(params.productId));
+  },
   component: ProductDetailPage,
 });
 
@@ -28,25 +35,15 @@ function ProductDetailPage() {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
 
-  const product = getProductById(Number(productId));
+  const { data } = useSuspenseProduct(productId);
+  const product = data.product;
 
-  if (!product) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-medium mb-4">Product Not Found</h1>
-          <Link to="/" className="text-[#00ec97] hover:underline">
-            Back to Shop
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const productImages = [product.image, product.image, product.image, product.image];
-  const relatedProducts = getProductsByCategory(product.category)
+  const { data: relatedData } = useProducts({ category: product.category, limit: 4 });
+  const relatedProducts = (relatedData?.products ?? [])
     .filter((p) => p.id !== product.id)
     .slice(0, 3);
+
+  const productImages = [product.image, product.image, product.image, product.image];
   const isFavorite = favoriteIds.includes(product.id);
   const needsSize = requiresSize(product.category);
 
@@ -146,8 +143,7 @@ function ProductDetailPage() {
             </div>
 
             <p className="text-[#717182] tracking-[-0.48px] leading-6">
-              Premium heavyweight hoodie featuring the iconic NEAR Protocol logo.
-              Made from 100% organic cotton for ultimate comfort and sustainability.
+              {product.description || 'Premium heavyweight hoodie featuring the iconic NEAR Protocol logo. Made from 100% organic cotton for ultimate comfort and sustainability.'}
             </p>
 
             <div className="h-px bg-[rgba(0,0,0,0.1)]" />
@@ -251,7 +247,7 @@ function ProductDetailPage() {
                 <Link
                   key={relatedProduct.id}
                   to="/products/$productId"
-                  params={{ productId: String(relatedProduct.id) }}
+                  params={{ productId: relatedProduct.id }}
                   className="border border-[rgba(0,0,0,0.1)] overflow-hidden group"
                 >
                   <div className="bg-[#ececf0] aspect-square overflow-hidden relative">

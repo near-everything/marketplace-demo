@@ -4,7 +4,7 @@ import { Package, Clock, MapPin, CreditCard, Link2, ChevronRight } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'sonner';
-import { queryClient } from '@/lib/orpc';
+import { queryClient } from '@/utils/orpc';
 
 export const Route = createFileRoute('/_marketplace/_authenticated/account')({
   component: MyAccountPage,
