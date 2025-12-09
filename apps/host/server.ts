@@ -13,9 +13,14 @@ import { ZodToJsonSchemaConverter } from '@orpc/zod/zod4';
 import config from './rsbuild.config';
 import { initializePlugins } from './src/runtime';
 import { createRouter } from './src/routers';
+import { auth } from './src/lib/auth';
 
 async function createContext(req: Request) {
-  return {};
+  const session = await auth.api.getSession({ headers: req.headers });
+  return {
+    session,
+    user: session?.user,
+  };
 }
 
 async function startServer() {
@@ -69,35 +74,7 @@ async function startServer() {
 
   apiApp.get('/health', (c) => c.text('OK'));
 
-  const serverUrl = process.env.SERVER_URL || 'http://localhost:3000';
-
-  apiApp.all('/api/auth/*', async (c) => {
-    const url = new URL(c.req.url);
-    const targetUrl = `${serverUrl}${url.pathname}${url.search}`;
-
-    const headers = new Headers(c.req.raw.headers);
-    headers.delete('host');
-
-    const response = await fetch(targetUrl, {
-      method: c.req.method,
-      headers,
-      body:
-        c.req.method !== 'GET' && c.req.method !== 'HEAD'
-          ? c.req.raw.body
-          : undefined,
-      redirect: 'manual',
-      // @ts-expect-error duplex is required for streaming body
-      duplex: 'half',
-    });
-
-    const responseHeaders = new Headers(response.headers);
-
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: responseHeaders,
-    });
-  });
+  apiApp.on(['POST', 'GET'], '/api/auth/*', (c) => auth.handler(c.req.raw));
 
   apiApp.post('/api/webhooks/stripe', async (c) => {
     const req = c.req.raw;
@@ -106,9 +83,9 @@ async function startServer() {
     const context = await createContext(req);
 
     const result = await apiHandler.handle(
-      new Request(`${req.url.replace('/api/webhooks/stripe', '/api/webhooks/stripe')}`, {
+      new Request(req.url, {
         method: 'POST',
-        headers: req.headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ body, signature }),
       }),
       { prefix: '/api', context }
@@ -126,9 +103,9 @@ async function startServer() {
     const context = await createContext(req);
 
     const result = await apiHandler.handle(
-      new Request(`${req.url.replace('/api/webhooks/fulfillment', '/api/webhooks/fulfillment')}`, {
+      new Request(req.url, {
         method: 'POST',
-        headers: req.headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ body, signature }),
       }),
       { prefix: '/api', context }
