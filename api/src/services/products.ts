@@ -1,181 +1,156 @@
-import { Effect } from 'every-plugin/effect';
-import {
-  categoryFromSlug,
-  COLLECTIONS,
-  getCollectionBySlug,
-  getFeaturedProducts as getFeaturedProductsData,
-  getProductById,
-  PRODUCTS
-} from '../data/products';
-import type { Product, ProductCategory } from '../schema';
+import { Context, Effect, Layer } from 'every-plugin/effect';
+import type { Product, ProductCategory, Collection } from '../schema';
 import type { PrintfulFulfillmentService } from './fulfillment';
+import { ProductStore } from '../store';
 
-export class ProductService {
-  private printfulService: PrintfulFulfillmentService | null;
-  private printfulProductsCache: Product[] | null = null;
-  private printfulCacheExpiry: number = 0;
-  private readonly CACHE_TTL_MS = 5 * 60 * 1000;
+export const COLLECTIONS: Collection[] = [
+  { slug: 'men', name: 'Men', description: "Men's apparel and accessories" },
+  { slug: 'women', name: 'Women', description: "Women's apparel and accessories" },
+  { slug: 'accessories', name: 'Accessories', description: 'Bags, hats, and more' },
+  { slug: 'exclusives', name: 'Exclusives', description: 'Limited edition items' },
+];
 
-  constructor(printfulService?: PrintfulFulfillmentService | null) {
-    this.printfulService = printfulService ?? null;
-  }
-
-  private getPrintfulProducts() {
-    return Effect.gen(this, function* () {
-      if (!this.printfulService) {
-        return [];
-      }
-
-      const now = Date.now();
-      if (this.printfulProductsCache && now < this.printfulCacheExpiry) {
-        return this.printfulProductsCache;
-      }
-
-      try {
-        const syncProducts = yield* this.printfulService.getSyncProducts();
-        const allProducts: Product[] = [];
-
-        for (const syncProduct of syncProducts) {
-          try {
-            const { sync_product, sync_variants } = yield* this.printfulService.getSyncProduct(syncProduct.id);
-            const products = this.printfulService.transformSyncProductToProduct(sync_product, sync_variants);
-            allProducts.push(...products);
-          } catch (error) {
-            console.error(`Failed to fetch Printful product ${syncProduct.id}:`, error);
-          }
-        }
-
-        this.printfulProductsCache = allProducts;
-        this.printfulCacheExpiry = now + this.CACHE_TTL_MS;
-
-        return allProducts;
-      } catch (error) {
-        console.error('Failed to fetch Printful products:', error);
-        return this.printfulProductsCache || [];
-      }
-    });
-  }
-
-  private getAllProducts() {
-    return Effect.gen(this, function* () {
-      const staticProducts = PRODUCTS.map((p) => ({
-        ...p,
-        fulfillmentProvider: p.fulfillmentProvider || ('manual' as const),
-      }));
-
-      const printfulProducts = yield* this.getPrintfulProducts();
-
-      return [...staticProducts, ...printfulProducts];
-    });
-  }
-
-  getProducts(options: { category?: ProductCategory; limit?: number; offset?: number }) {
-    return Effect.gen(this, function* () {
-      const { category, limit = 50, offset = 0 } = options;
-
-      let allProducts = yield* this.getAllProducts();
-
-      if (category) {
-        allProducts = allProducts.filter((p) => p.category === category);
-      }
-
-      const total = allProducts.length;
-      const products = allProducts.slice(offset, offset + limit);
-
-      return { products, total };
-    });
-  }
-
-  getProduct(id: string) {
-    return Effect.gen(this, function* () {
-      if (id.startsWith('printful-')) {
-        const printfulProducts = yield* this.getPrintfulProducts();
-        const product = printfulProducts.find((p) => p.id === id);
-        if (!product) {
-          return yield* Effect.fail(new Error(`Product not found: ${id}`));
-        }
-        return { product };
-      }
-
-      const staticProduct = getProductById(id);
-      if (staticProduct) {
-        return {
-          product: {
-            ...staticProduct,
-            fulfillmentProvider: staticProduct.fulfillmentProvider || ('manual' as const),
-          },
-        };
-      }
-
-      const allProducts = yield* this.getAllProducts();
-      const product = allProducts.find((p) => p.id === id);
-
-      if (!product) {
-        return yield* Effect.fail(new Error(`Product not found: ${id}`));
-      }
-
-      return { product };
-    });
-  }
-
-  searchProducts(options: { query: string; category?: ProductCategory; limit?: number }) {
-    return Effect.gen(this, function* () {
-      const { query, category, limit = 20 } = options;
-      const lowerQuery = query.toLowerCase();
-
-      const allProducts = yield* this.getAllProducts();
-
-      const matchedProducts = allProducts.filter((p) => {
-        const matchesQuery = !query || p.name.toLowerCase().includes(lowerQuery);
-        const matchesCategory = !category || p.category === category;
-        return matchesQuery && matchesCategory;
-      });
-
-      const products = matchedProducts.slice(0, limit);
-      return { products };
-    });
-  }
-
-  getFeaturedProducts(limit = 8) {
-    return Effect.gen(this, function* () {
-      const allProducts = yield* this.getAllProducts();
-
-      const printfulProducts = allProducts.filter((p) => p.fulfillmentProvider === 'printful');
-      const staticFeatured = getFeaturedProductsData(limit);
-
-      const combined = [...printfulProducts.slice(0, Math.min(2, printfulProducts.length))];
-
-      const remaining = limit - combined.length;
-      combined.push(...staticFeatured.slice(0, remaining));
-
-      return { products: combined.slice(0, limit) };
-    });
-  }
-
-  getCollections() {
-    return Effect.sync(() => {
-      return { collections: COLLECTIONS };
-    });
-  }
-
-  getCollection(slug: string) {
-    return Effect.gen(this, function* () {
-      const collection = getCollectionBySlug(slug);
-      if (!collection) {
-        return yield* Effect.fail(new Error(`Collection not found: ${slug}`));
-      }
-
-      const category = categoryFromSlug(slug);
-      const allProducts = yield* this.getAllProducts();
-
-      const products = category ? allProducts.filter((p) => p.category === category) : [];
-
-      return { collection, products };
-    });
-  }
-
-  clearCache() {
-    this.printfulProductsCache = null;
-    this.printfulCacheExpiry = 0;
-  }
+function categoryFromSlug(slug: string): ProductCategory | undefined {
+  const map: Record<string, ProductCategory> = {
+    men: 'Men',
+    women: 'Women',
+    accessories: 'Accessories',
+    exclusives: 'Exclusives',
+  };
+  return map[slug];
 }
+
+function getCollectionBySlug(slug: string): Collection | undefined {
+  return COLLECTIONS.find((c) => c.slug === slug);
+}
+
+export class ProductService extends Context.Tag("ProductService")<
+  ProductService,
+  {
+    readonly getProducts: (options: { category?: ProductCategory; limit?: number; offset?: number }) => Effect.Effect<{ products: Product[]; total: number }, Error>;
+    readonly getProduct: (id: string) => Effect.Effect<{ product: Product }, Error>;
+    readonly searchProducts: (options: { query: string; category?: ProductCategory; limit?: number }) => Effect.Effect<{ products: Product[] }, Error>;
+    readonly getFeaturedProducts: (limit?: number) => Effect.Effect<{ products: Product[] }, Error>;
+    readonly getCollections: () => Effect.Effect<{ collections: Collection[] }, Error>;
+    readonly getCollection: (slug: string) => Effect.Effect<{ collection: Collection; products: Product[] }, Error>;
+    readonly sync: () => Effect.Effect<{ status: string; count: number }, Error>;
+    readonly getSyncStatus: () => Effect.Effect<{
+      status: 'idle' | 'running' | 'error';
+      lastSuccessAt: number | null;
+      lastErrorAt: number | null;
+      errorMessage: string | null;
+    }, Error>;
+  }
+>() {}
+
+export const ProductServiceLive = (printfulService: PrintfulFulfillmentService | null) =>
+  Layer.effect(
+    ProductService,
+    Effect.gen(function* () {
+      const store = yield* ProductStore;
+
+      const syncFromPrintful = (): Effect.Effect<number, Error> =>
+        Effect.gen(function* () {
+          if (!printfulService) {
+            console.log('[ProductSync] No Printful service configured, skipping sync');
+            return 0;
+          }
+
+          console.log('[ProductSync] Starting Printful sync...');
+          const syncProducts = yield* printfulService.getSyncProducts();
+          console.log(`[ProductSync] Found ${syncProducts.length} Printful sync products`);
+
+          let syncedCount = 0;
+
+          for (const syncProduct of syncProducts) {
+            try {
+              const { sync_product, sync_variants } = yield* printfulService.getSyncProduct(syncProduct.id);
+              const products = printfulService.transformSyncProductToProduct(sync_product, sync_variants);
+
+              for (const product of products) {
+                yield* store.upsert({
+                  ...product,
+                  source: 'printful',
+                });
+                syncedCount++;
+              }
+
+              console.log(`[ProductSync] Synced ${products.length} variants from product ${syncProduct.id}`);
+            } catch (error) {
+              console.error(`[ProductSync] Failed to sync Printful product ${syncProduct.id}:`, error);
+            }
+          }
+
+          console.log(`[ProductSync] Completed Printful sync: ${syncedCount} products`);
+          return syncedCount;
+        });
+
+      return {
+        getProducts: (options) =>
+          Effect.gen(function* () {
+            const { category, limit = 50, offset = 0 } = options;
+            return yield* store.findMany({ category, limit, offset });
+          }),
+
+        getProduct: (id) =>
+          Effect.gen(function* () {
+            const product = yield* store.find(id);
+            if (!product) {
+              return yield* Effect.fail(new Error(`Product not found: ${id}`));
+            }
+            return { product };
+          }),
+
+        searchProducts: (options) =>
+          Effect.gen(function* () {
+            const { query, category, limit = 20 } = options;
+            const products = yield* store.search(query, category, limit);
+            return { products };
+          }),
+
+        getFeaturedProducts: (limit = 8) =>
+          Effect.gen(function* () {
+            const result = yield* store.findMany({ limit, offset: 0 });
+            return { products: result.products };
+          }),
+
+        getCollections: () =>
+          Effect.succeed({ collections: COLLECTIONS }),
+
+        getCollection: (slug) =>
+          Effect.gen(function* () {
+            const collection = getCollectionBySlug(slug);
+            if (!collection) {
+              return yield* Effect.fail(new Error(`Collection not found: ${slug}`));
+            }
+
+            const category = categoryFromSlug(slug);
+            const result = category
+              ? yield* store.findMany({ category, limit: 100, offset: 0 })
+              : { products: [], total: 0 };
+
+            return { collection, products: result.products };
+          }),
+
+        sync: () =>
+          Effect.gen(function* () {
+            yield* store.setSyncStatus('products', 'running', null, null, null);
+
+            try {
+              const count = yield* syncFromPrintful();
+              yield* store.setSyncStatus('products', 'idle', new Date(), null, null);
+              return { status: 'completed', count };
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              yield* store.setSyncStatus('products', 'error', null, new Date(), errorMessage);
+              return yield* Effect.fail(new Error(`Sync failed: ${errorMessage}`));
+            }
+          }),
+
+        getSyncStatus: () =>
+          Effect.gen(function* () {
+            return yield* store.getSyncStatus('products');
+          }),
+      };
+    })
+  );

@@ -9,6 +9,9 @@
       "name": "marketplace-api",
       "version": "0.0.1",
       "dependencies": {
+        "@libsql/client": "^0.15.15",
+        "drizzle-kit": "^0.31.8",
+        "drizzle-orm": "^0.45.0",
         "near-kit": "^0.6.3",
         "near-social-js": "^2.0.3",
         "stripe": "^20.0.0",

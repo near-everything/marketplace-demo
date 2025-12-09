@@ -13,6 +13,9 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@libsql/client": "^0.15.15",
+    "drizzle-kit": "^0.31.8",
+    "drizzle-orm": "^0.45.0",
     "near-kit": "^0.6.3",
     "near-social-js": "^2.0.3",
     "stripe": "^20.0.0"
@@ -35,6 +38,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   }
 }

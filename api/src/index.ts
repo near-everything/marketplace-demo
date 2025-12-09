@@ -1,11 +1,11 @@
 import { createPlugin } from 'every-plugin';
-import { Effect } from 'every-plugin/effect';
+import { Effect, Layer } from 'every-plugin/effect';
 import { z } from 'every-plugin/zod';
 import { Near, InMemoryKeyStore, parseKey, type Network } from 'near-kit';
 
 import { contract } from './contract';
 import { RelayerService } from './service';
-import { ProductService } from './services/products';
+import { ProductService, ProductServiceLive } from './services/products';
 import { OrderService } from './services/orders';
 import { StripeService } from './services/stripe';
 import {
@@ -16,6 +16,7 @@ import {
   parseTrackingInfo,
   parsePrintfulTrackingInfo,
 } from './services/fulfillment';
+import { ProductStore, ProductStoreLive, DatabaseLive } from './store';
 
 import type { ShippingAddress } from './schema';
 
@@ -52,6 +53,8 @@ export default createPlugin({
     GELATO_WEBHOOK_SECRET: z.string().optional(),
     PRINTFUL_API_KEY: z.string().optional(),
     PRINTFUL_STORE_ID: z.string().optional(),
+    DATABASE_URL: z.string().default('file:./marketplace.db'),
+    DATABASE_AUTH_TOKEN: z.string().optional(),
   }),
 
   contract,
@@ -64,7 +67,6 @@ export default createPlugin({
             rpcUrl: config.variables.nodeUrl,
           }
         : (config.variables.network as Network);
-
 
       const keyStore = new InMemoryKeyStore();
       yield* Effect.promise(() =>
@@ -103,24 +105,34 @@ export default createPlugin({
         ? new PrintfulFulfillmentService(config.secrets.PRINTFUL_API_KEY, config.secrets.PRINTFUL_STORE_ID)
         : null;
 
-      const productService = new ProductService(printfulService);
+      const dbLayer = DatabaseLive(config.secrets.DATABASE_URL, config.secrets.DATABASE_AUTH_TOKEN);
+
+      const appLayer = ProductServiceLive(printfulService).pipe(
+        Layer.provide(ProductStoreLive),
+        Layer.provide(dbLayer)
+      );
+
       const orderService = new OrderService();
 
+      console.log('[Marketplace] Plugin initialized');
+      console.log(`[Marketplace] Database: ${config.secrets.DATABASE_URL}`);
+      console.log(`[Marketplace] Printful: ${printfulService ? 'configured' : 'not configured'}`);
+      console.log(`[Marketplace] Stripe: ${stripeService ? 'configured' : 'not configured'}`);
 
       return {
         relayerService,
-        productService,
         orderService,
         stripeService,
         gelatoService,
         printfulService,
+        appLayer,
       };
     }),
 
   shutdown: () => Effect.void,
 
   createRouter: (context, builder) => {
-    const { relayerService, productService, orderService, stripeService, gelatoService, printfulService } = context;
+    const { relayerService, orderService, stripeService, gelatoService, printfulService, appLayer } = context;
 
     return {
       connect: builder.connect.handler(async ({ input }) => {
@@ -139,27 +151,75 @@ export default createPlugin({
       }),
 
       getProducts: builder.getProducts.handler(async ({ input }) => {
-        return await Effect.runPromise(productService.getProducts(input));
+        return await Effect.runPromise(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.getProducts(input);
+          }).pipe(Effect.provide(appLayer))
+        );
       }),
 
       getProduct: builder.getProduct.handler(async ({ input }) => {
-        return await Effect.runPromise(productService.getProduct(input.id));
+        return await Effect.runPromise(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.getProduct(input.id);
+          }).pipe(Effect.provide(appLayer))
+        );
       }),
 
       searchProducts: builder.searchProducts.handler(async ({ input }) => {
-        return await Effect.runPromise(productService.searchProducts(input));
+        return await Effect.runPromise(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.searchProducts(input);
+          }).pipe(Effect.provide(appLayer))
+        );
       }),
 
       getFeaturedProducts: builder.getFeaturedProducts.handler(async ({ input }) => {
-        return await Effect.runPromise(productService.getFeaturedProducts(input.limit));
+        return await Effect.runPromise(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.getFeaturedProducts(input.limit);
+          }).pipe(Effect.provide(appLayer))
+        );
       }),
 
       getCollections: builder.getCollections.handler(async () => {
-        return await Effect.runPromise(productService.getCollections());
+        return await Effect.runPromise(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.getCollections();
+          }).pipe(Effect.provide(appLayer))
+        );
       }),
 
       getCollection: builder.getCollection.handler(async ({ input }) => {
-        return await Effect.runPromise(productService.getCollection(input.slug));
+        return await Effect.runPromise(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.getCollection(input.slug);
+          }).pipe(Effect.provide(appLayer))
+        );
+      }),
+
+      sync: builder.sync.handler(async () => {
+        return await Effect.runPromise(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.sync();
+          }).pipe(Effect.provide(appLayer))
+        );
+      }),
+
+      getSyncStatus: builder.getSyncStatus.handler(async () => {
+        return await Effect.runPromise(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.getSyncStatus();
+          }).pipe(Effect.provide(appLayer))
+        );
       }),
 
       createCheckout: builder.createCheckout.handler(async ({ input }) => {
@@ -167,7 +227,12 @@ export default createPlugin({
           throw new Error('Stripe is not configured');
         }
 
-        const productResult = await Effect.runPromise(productService.getProduct(input.productId));
+        const productResult = await Effect.runPromise(
+          Effect.gen(function* () {
+            const service = yield* ProductService;
+            return yield* service.getProduct(input.productId);
+          }).pipe(Effect.provide(appLayer))
+        );
         const product = productResult.product;
 
         const userId = 'demo-user';
@@ -248,7 +313,12 @@ export default createPlugin({
               const orderResult = await Effect.runPromise(orderService.getOrder(orderId));
               const order = orderResult.order;
 
-              const productResult = await Effect.runPromise(productService.getProduct(order.productId));
+              const productResult = await Effect.runPromise(
+                Effect.gen(function* () {
+                  const service = yield* ProductService;
+                  return yield* service.getProduct(order.productId);
+                }).pipe(Effect.provide(appLayer))
+              );
               const product = productResult.product;
 
               try {

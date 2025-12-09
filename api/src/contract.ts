@@ -231,4 +231,36 @@ export const contract = oc.router({
       })
     )
     .output(WebhookResponseSchema),
+
+  sync: oc
+    .route({
+      method: 'POST',
+      path: '/sync',
+      summary: 'Sync products from fulfillment providers',
+      description: 'Triggers a sync of products from configured fulfillment providers (Printful). Runs in the background.',
+      tags: ['Sync'],
+    })
+    .output(
+      z.object({
+        status: z.string(),
+        count: z.number().optional(),
+      })
+    ),
+
+  getSyncStatus: oc
+    .route({
+      method: 'GET',
+      path: '/sync-status',
+      summary: 'Get sync status',
+      description: 'Returns the current status of product sync operations.',
+      tags: ['Sync'],
+    })
+    .output(
+      z.object({
+        status: z.enum(['idle', 'running', 'error']),
+        lastSuccessAt: z.number().nullable(),
+        lastErrorAt: z.number().nullable(),
+        errorMessage: z.string().nullable(),
+      })
+    ),
 });
