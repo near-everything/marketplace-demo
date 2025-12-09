@@ -11,6 +11,11 @@ export const env = createEnv({
     CORS_ORIGIN: z.string().optional(),
 
     // Add other secrets here as needed by plugins
+    PRINTFUL_API_KEY: z.string().optional(),
+    RELAYER_ACCOUNT_ID: z.string().optional(),
+    RELAYER_PRIVATE_KEY: z.string().optional(),
+    GELATO_API_KEY: z.string().optional(),
+    STRIPE_SECRET_KEY: z.string().optional()
     // REDIS_URL: z.string().optional(),
   },
   // TODO
