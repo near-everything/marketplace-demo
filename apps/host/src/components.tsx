@@ -6,48 +6,46 @@ import {
   useState,
   useEffect,
   type CSSProperties,
+  useMemo,
 } from 'react';
+import { loadRemote } from '@module-federation/runtime';
 import { ErrorBoundary } from './error-boundary';
 import { LoadingFallback } from './loading-fallback';
 import { FadeIn } from './fade-in';
+import remotesConfig from '../remotes.json';
 
-const SocialProvider = lazy(() =>
-  import('near_social_js/providers').then((m) => ({ default: m.SocialProvider }))
-);
+interface RegistryItem {
+  name: string;
+  type: string;
+  title: string;
+  description: string;
+  registryDependencies?: string[];
+  files: { path: string; type: string }[];
+  meta?: {
+    defaultProps?: Record<string, unknown>;
+  };
+}
 
-const componentModules = {
-  ProfileCard: lazy(() =>
-    import('near_social_js/components').then((m) => ({ default: m.ProfileCard }))
-  ),
-  ProfileAvatar: lazy(() =>
-    import('near_social_js/components').then((m) => ({ default: m.ProfileAvatar }))
-  ),
-  WalletButton: lazy(() =>
-    import('near_social_js/components').then((m) => ({ default: m.WalletButton }))
-  ),
-  Logo: lazy(() =>
-    import('near_social_js/components').then((m) => ({ default: m.Logo }))
-  ),
-  JsonViewer: lazy(() =>
-    import('near_social_js/components').then((m) => ({ default: m.JsonViewer }))
-  ),
-  MethodCard: lazy(() =>
-    import('near_social_js/components').then((m) => ({ default: m.MethodCard }))
-  ),
-  ResponsePanel: lazy(() =>
-    import('near_social_js/components').then((m) => ({ default: m.ResponsePanel }))
-  ),
-};
+interface Registry {
+  $schema: string;
+  name: string;
+  homepage: string;
+  items: RegistryItem[];
+}
 
-const defaultProps: Record<string, Record<string, unknown>> = {
-  ProfileCard: { accountId: 'root.near', profile: { name: 'Demo User' } },
-  ProfileAvatar: { accountId: 'root.near', size: 64 },
-  WalletButton: {},
-  Logo: {},
-  JsonViewer: { data: { message: 'Hello from Module Federation', version: '1.0.0' } },
-  MethodCard: { title: 'getData', description: 'Fetches data from the social contract' },
-  ResponsePanel: { response: { success: true, data: { key: 'value' } } },
-};
+const [primaryRemoteName] = Object.keys(remotesConfig.remotes);
+const primaryRemote =
+  remotesConfig.remotes[
+    primaryRemoteName as keyof typeof remotesConfig.remotes
+  ];
+
+const SocialProvider = lazy(async () => {
+  const module = await loadRemote<{
+    SocialProvider: FC<{ network: string; children: React.ReactNode }>;
+  }>(`${primaryRemoteName}/providers`);
+  if (!module) throw new Error(`Failed to load ${primaryRemoteName}/providers`);
+  return { default: module.SocialProvider };
+});
 
 const cardContainerStyle: CSSProperties = {
   background: '#fff',
@@ -71,7 +69,8 @@ const cardTitleStyle: CSSProperties = {
   fontSize: '13px',
   fontWeight: 600,
   color: '#374151',
-  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+  fontFamily:
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
 };
 
 const previewContainerStyle: CSSProperties = {
@@ -101,7 +100,8 @@ const propsContainerStyle: CSSProperties = {
   background: '#f9fafb',
   padding: '12px 16px',
   fontSize: '11px',
-  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+  fontFamily:
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
   color: '#6b7280',
   overflow: 'auto',
   maxHeight: '120px',
@@ -134,12 +134,21 @@ const errorBadgeStyle: CSSProperties = {
 
 interface ComponentCardProps {
   name: string;
+  title: string;
+  description: string;
   Component: ComponentType<Record<string, unknown>>;
   props: Record<string, unknown>;
   index: number;
 }
 
-const ComponentCard: FC<ComponentCardProps> = ({ name, Component, props, index }) => {
+const ComponentCard: FC<ComponentCardProps> = ({
+  name,
+  title,
+  description,
+  Component,
+  props,
+  index,
+}) => {
   const [loaded, setLoaded] = useState(false);
   const [showProps, setShowProps] = useState(false);
 
@@ -159,7 +168,7 @@ const ComponentCard: FC<ComponentCardProps> = ({ name, Component, props, index }
   return (
     <div style={{ ...cardContainerStyle, ...cardAnimation }}>
       <div style={cardHeaderStyle}>
-        <span style={cardTitleStyle}>{`<${name} />`}</span>
+        <span style={cardTitleStyle}>{`<${title} />`}</span>
         {hasProps && (
           <button
             onClick={() => setShowProps(!showProps)}
@@ -189,7 +198,13 @@ const ComponentCard: FC<ComponentCardProps> = ({ name, Component, props, index }
       </div>
       {hasProps && showProps && (
         <div style={propsContainerStyle}>
-          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <pre
+            style={{
+              margin: 0,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
             {JSON.stringify(props, null, 2)}
           </pre>
         </div>
@@ -255,7 +270,8 @@ const codeStyle: CSSProperties = {
   background: '#e5e7eb',
   padding: '2px 6px',
   borderRadius: '4px',
-  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+  fontFamily:
+    'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
   fontSize: '0.9em',
 };
 
@@ -265,14 +281,61 @@ const gridStyle: CSSProperties = {
   gap: 'clamp(16px, 3vw, 24px)',
 };
 
+const createLazyComponent = (componentName: string) => {
+  return lazy(async () => {
+    const module = await loadRemote<
+      Record<string, ComponentType<Record<string, unknown>>>
+    >(`${primaryRemoteName}/components`);
+    if (!module || !module[componentName]) {
+      throw new Error(
+        `Component ${componentName} not found in ${primaryRemoteName}/components`
+      );
+    }
+    return { default: module[componentName] };
+  });
+};
+
 export const Components: FC = () => {
   const [ready, setReady] = useState(false);
-  const components = Object.entries(componentModules);
+  const [registry, setRegistry] = useState<Registry | null>(null);
+  const [registryError, setRegistryError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => setReady(true), 50);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const fetchRegistry = async () => {
+      try {
+        const remoteUrl = primaryRemote.url;
+        const baseUrl = remoteUrl.replace(/\/remoteEntry\.js$/, '');
+        const registryUrl = `${baseUrl}${primaryRemote.registryPath || '/r/registry.json'}`;
+
+        const response = await fetch(registryUrl);
+        if (!response.ok)
+          throw new Error(`Failed to fetch registry: ${response.status}`);
+        const data = await response.json();
+        setRegistry(data);
+      } catch (err) {
+        console.error('Failed to load registry:', err);
+        setRegistryError(err instanceof Error ? err.message : 'Unknown error');
+      }
+    };
+
+    fetchRegistry();
+  }, []);
+
+  const componentEntries = useMemo(() => {
+    if (!registry) return [];
+    return registry.items.map((item) => ({
+      name: item.name,
+      title: item.title,
+      description: item.description,
+      Component: createLazyComponent(item.title),
+      defaultProps: item.meta?.defaultProps || {},
+    }));
+  }, [registry]);
 
   const wrapperAnimation: CSSProperties = {
     opacity: ready ? 1 : 0,
@@ -289,7 +352,14 @@ export const Components: FC = () => {
         `}
       </style>
       <ErrorBoundary>
-        <Suspense fallback={<LoadingFallback message="Loading providers..." submessage="Setting up social context" />}>
+        <Suspense
+          fallback={
+            <LoadingFallback
+              message="Loading providers..."
+              submessage="Setting up social context"
+            />
+          }
+        >
           <SocialProvider network="mainnet">
             <div style={scrollContainerStyle}>
               <div style={contentWrapperStyle}>
@@ -297,18 +367,42 @@ export const Components: FC = () => {
                   <header style={headerStyle}>
                     <h1 style={titleStyle}>Component Gallery</h1>
                     <p style={subtitleStyle}>
-                      Remote components from <code style={codeStyle}>near_social_js</code>
+                      Remote components from{' '}
+                      <code style={codeStyle}>
+                        {primaryRemote.displayName || primaryRemoteName}
+                      </code>
                     </p>
                   </header>
                 </FadeIn>
 
+                {registryError && (
+                  <div
+                    style={{
+                      ...errorBadgeStyle,
+                      marginBottom: '16px',
+                      padding: '12px',
+                    }}
+                  >
+                    Failed to load registry: {registryError}
+                  </div>
+                )}
+
+                {!registry && !registryError && (
+                  <div style={inlineLoaderStyle}>
+                    <div style={spinnerStyle} />
+                    <span>Loading component registry...</span>
+                  </div>
+                )}
+
                 <div style={gridStyle}>
-                  {components.map(([name, Component], index) => (
+                  {componentEntries.map((entry, index) => (
                     <ComponentCard
-                      key={name}
-                      name={name}
-                      Component={Component as ComponentType<Record<string, unknown>>}
-                      props={defaultProps[name] || {}}
+                      key={entry.name}
+                      name={entry.name}
+                      title={entry.title}
+                      description={entry.description}
+                      Component={entry.Component}
+                      props={entry.defaultProps}
                       index={index}
                     />
                   ))}

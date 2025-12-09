@@ -1,7 +1,5 @@
-import '../styles.css';
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { WalletProvider } from '../integrations/near-wallet';
+import { Toaster } from 'sonner';
 import type { Network } from 'near-kit';
 
 const defaultQueryClient = new QueryClient({
@@ -15,25 +13,37 @@ const defaultQueryClient = new QueryClient({
   },
 });
 
+export interface AppProviderProps {
+  children: React.ReactNode;
+  network?: Network;
+  queryClient?: QueryClient;
+}
+
+export function AppProvider({ children, queryClient = defaultQueryClient }: AppProviderProps) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+      <Toaster position="top-center" richColors closeButton />
+    </QueryClientProvider>
+  );
+}
+
 export interface SocialProviderProps {
   children: React.ReactNode;
   network?: Network;
   queryClient?: QueryClient;
 }
 
-export function SocialProvider({
-  children,
-  network = 'mainnet',
-  queryClient = defaultQueryClient,
-}: SocialProviderProps) {
+export function SocialProvider({ children, queryClient = defaultQueryClient }: SocialProviderProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <WalletProvider network={network}>{children}</WalletProvider>
+      {children}
+      <Toaster position="top-center" richColors closeButton />
     </QueryClientProvider>
   );
 }
 
-export { WalletProvider, QueryClientProvider };
+export { QueryClientProvider };
 
 export function createQueryClient() {
   return new QueryClient({

@@ -1,15 +1,14 @@
 {
+  "title": "Merch",
   "remotes": {
-    "near_social_js": {
-      "url": "http://localhost:3002/remoteEntry.js",
+    "marketplace_ui": {
+      "url": "https://elliot-braem-1043-marketplace-ui-marketplace-plug-a49d699c5-ze.zephyrcloud.app",
+      "displayName": "Merch",
+      "registryPath": "/r/registry.json",
       "exposes": {
         "App": "./App",
         "components": "./components",
-        "profile": "./profile",
         "providers": "./providers",
-        "hooks/social": "./hooks/social",
-        "hooks/graph": "./hooks/graph",
-        "hooks/wallet": "./hooks/wallet",
         "types": "./types"
       }
     }
