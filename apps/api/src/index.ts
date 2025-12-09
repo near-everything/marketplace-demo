@@ -8,21 +8,39 @@ import { RelayerService } from './service';
 import { ProductService } from './services/products';
 import { OrderService } from './services/orders';
 import { StripeService } from './services/stripe';
-import { GelatoFulfillmentService, mapFulfillmentStatus, parseTrackingInfo } from './services/fulfillment';
-import { getProductById } from './data/products';
+import {
+  GelatoFulfillmentService,
+  PrintfulFulfillmentService,
+  mapFulfillmentStatus,
+  mapPrintfulStatus,
+  parseTrackingInfo,
+  parsePrintfulTrackingInfo,
+} from './services/fulfillment';
+
+import type { ShippingAddress } from './schema';
 
 export * from './schema';
 
-const DEMO_PRODUCT = {
-  productUid: 'apparel_product_gca_t-shirt_gsc_crewneck_gcu_unisex_gqa_classic_gsi_s_gco_white_gpr_4-4',
-  fileUrl: 'https://cdn-origin.gelato-api-dashboard.ie.live.gelato.tech/docs/sample-print-files/logo.png',
-};
+const ReturnAddressSchema = z.object({
+  firstName: z.string(),
+  lastName: z.string(),
+  companyName: z.string().optional(),
+  addressLine1: z.string(),
+  addressLine2: z.string().optional(),
+  city: z.string(),
+  state: z.string(),
+  postCode: z.string(),
+  country: z.string(),
+  email: z.string(),
+  phone: z.string().optional(),
+});
 
 export default createPlugin({
   variables: z.object({
     network: z.enum(['mainnet', 'testnet']).default('mainnet'),
     contractId: z.string().default('social.near'),
     nodeUrl: z.string().optional(),
+    returnAddress: ReturnAddressSchema.optional(),
   }),
 
   secrets: z.object({
@@ -32,6 +50,8 @@ export default createPlugin({
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
     GELATO_API_KEY: z.string().optional(),
     GELATO_WEBHOOK_SECRET: z.string().optional(),
+    PRINTFUL_API_KEY: z.string().optional(),
+    PRINTFUL_STORE_ID: z.string().optional(),
   }),
 
   contract,
@@ -45,9 +65,6 @@ export default createPlugin({
           }
         : (config.variables.network as Network);
 
-      console.log(`[API Init] relayerAccountId: ${config.secrets.relayerAccountId}`);
-      console.log(`[API Init] network: ${config.variables.network}`);
-      console.log(`[API Init] contractId: ${config.variables.contractId}`);
 
       const keyStore = new InMemoryKeyStore();
       yield* Effect.promise(() =>
@@ -70,32 +87,40 @@ export default createPlugin({
         config.variables.contractId
       );
 
-      const productService = new ProductService();
-      const orderService = new OrderService();
-
       const stripeService = config.secrets.STRIPE_SECRET_KEY && config.secrets.STRIPE_WEBHOOK_SECRET
         ? new StripeService(config.secrets.STRIPE_SECRET_KEY, config.secrets.STRIPE_WEBHOOK_SECRET)
         : null;
 
-      const fulfillmentService = config.secrets.GELATO_API_KEY && config.secrets.GELATO_WEBHOOK_SECRET
-        ? new GelatoFulfillmentService(config.secrets.GELATO_API_KEY, config.secrets.GELATO_WEBHOOK_SECRET)
+      const gelatoService = config.secrets.GELATO_API_KEY && config.secrets.GELATO_WEBHOOK_SECRET
+        ? new GelatoFulfillmentService(
+            config.secrets.GELATO_API_KEY,
+            config.secrets.GELATO_WEBHOOK_SECRET,
+            config.variables.returnAddress as ShippingAddress | undefined
+          )
         : null;
 
-      console.debug('[API Init] Services initialized');
+      const printfulService = config.secrets.PRINTFUL_API_KEY
+        ? new PrintfulFulfillmentService(config.secrets.PRINTFUL_API_KEY, config.secrets.PRINTFUL_STORE_ID)
+        : null;
+
+      const productService = new ProductService(printfulService);
+      const orderService = new OrderService();
+
 
       return {
         relayerService,
         productService,
         orderService,
         stripeService,
-        fulfillmentService,
+        gelatoService,
+        printfulService,
       };
     }),
 
   shutdown: () => Effect.void,
 
   createRouter: (context, builder) => {
-    const { relayerService, productService, orderService, stripeService, fulfillmentService } = context;
+    const { relayerService, productService, orderService, stripeService, gelatoService, printfulService } = context;
 
     return {
       connect: builder.connect.handler(async ({ input }) => {
@@ -142,10 +167,8 @@ export default createPlugin({
           throw new Error('Stripe is not configured');
         }
 
-        const product = getProductById(input.productId);
-        if (!product) {
-          throw new Error(`Product not found: ${input.productId}`);
-        }
+        const productResult = await Effect.runPromise(productService.getProduct(input.productId));
+        const product = productResult.product;
 
         const userId = 'demo-user';
         const totalAmount = product.price * 100 * input.quantity;
@@ -197,8 +220,8 @@ export default createPlugin({
       }),
 
       stripeWebhook: builder.stripeWebhook.handler(async ({ input }) => {
-        if (!stripeService || !fulfillmentService) {
-          throw new Error('Stripe or fulfillment service not configured');
+        if (!stripeService) {
+          throw new Error('Stripe is not configured');
         }
 
         const event = await Effect.runPromise(
@@ -225,24 +248,54 @@ export default createPlugin({
               const orderResult = await Effect.runPromise(orderService.getOrder(orderId));
               const order = orderResult.order;
 
-              const orderData = fulfillmentService.buildOrderData({
-                orderId: order.id,
-                userId: order.userId,
-                productUid: DEMO_PRODUCT.productUid,
-                fileUrl: DEMO_PRODUCT.fileUrl,
-                quantity: order.quantity,
-                currency: order.currency,
-                shippingAddress,
-                fulfillmentReferenceId: order.fulfillmentReferenceId!,
-              });
+              const productResult = await Effect.runPromise(productService.getProduct(order.productId));
+              const product = productResult.product;
 
               try {
-                const fulfillmentResult = await Effect.runPromise(
-                  fulfillmentService.createOrder(orderData)
-                );
-                await Effect.runPromise(
-                  orderService.updateOrderFulfillment(orderId, fulfillmentResult.id)
-                );
+                if (product.fulfillmentProvider === 'printful' && printfulService) {
+                  const printfulOrderData = printfulService.buildOrderData({
+                    orderId: order.id,
+                    syncVariantId: product.fulfillmentConfig?.printfulSyncVariantId,
+                    variantId: product.fulfillmentConfig?.printfulVariantId,
+                    fileUrl: product.fulfillmentConfig?.fileUrl,
+                    quantity: order.quantity,
+                    shippingAddress,
+                  });
+
+                  const fulfillmentResult = await Effect.runPromise(
+                    printfulService.createOrder(printfulOrderData, false)
+                  );
+                  await Effect.runPromise(
+                    orderService.updateOrderFulfillment(orderId, fulfillmentResult.id)
+                  );
+                } else if (product.fulfillmentProvider === 'gelato' && gelatoService) {
+                  if (!product.fulfillmentConfig?.gelatoProductUid || !product.fulfillmentConfig?.fileUrl) {
+                    throw new Error(`Product ${product.id} is missing Gelato fulfillment config`);
+                  }
+                  const gelatoOrderData = gelatoService.buildOrderData({
+                    orderId: order.id,
+                    userId: order.userId,
+                    productUid: product.fulfillmentConfig.gelatoProductUid,
+                    fileUrl: product.fulfillmentConfig.fileUrl,
+                    quantity: order.quantity,
+                    currency: order.currency,
+                    shippingAddress,
+                    fulfillmentReferenceId: order.fulfillmentReferenceId!,
+                  });
+
+                  const fulfillmentResult = await Effect.runPromise(
+                    gelatoService.createOrder(gelatoOrderData)
+                  );
+                  await Effect.runPromise(
+                    orderService.updateOrderFulfillment(orderId, fulfillmentResult.id)
+                  );
+                } else if (product.fulfillmentProvider === 'manual') {
+                  // Manual fulfillment - no automated order creation needed
+                } else if (!product.fulfillmentProvider) {
+                  console.error(`[Fulfillment] Product ${product.id} has no fulfillment provider configured`);
+                } else {
+                  console.error(`[Fulfillment] Unsupported provider: ${product.fulfillmentProvider}`);
+                }
               } catch (error) {
                 console.error('Failed to create fulfillment order:', error);
               }
@@ -256,84 +309,105 @@ export default createPlugin({
       }),
 
       fulfillmentWebhook: builder.fulfillmentWebhook.handler(async ({ input }) => {
-        if (!fulfillmentService) {
-          throw new Error('Fulfillment service not configured');
-        }
-
-        const isValid = await Effect.runPromise(
-          fulfillmentService.verifyWebhookSignature(input.body, input.signature)
-        );
-
-        if (!isValid) {
-          throw new Error('Invalid webhook signature');
-        }
-
         const event = JSON.parse(input.body);
 
-        switch (event.event) {
-          case 'order_status_updated': {
-            const { orderReferenceId, fulfillmentStatus, items } = event;
-            const order = await Effect.runPromise(
-              orderService.getOrderByFulfillmentReference(orderReferenceId)
-            );
-            
-            if (order) {
-              const status = mapFulfillmentStatus(fulfillmentStatus);
-              await Effect.runPromise(orderService.updateOrderStatus(order.id, status));
-              
-              const trackingInfo = parseTrackingInfo(items);
+        if (event.type && event.type.startsWith('package_') || event.type?.startsWith('order_')) {
+          if (!gelatoService) {
+            console.warn('[Webhook] No Gelato service configured for webhook');
+            return { received: true };
+          }
+
+          const isValid = await Effect.runPromise(
+            gelatoService.verifyWebhookSignature(input.body, input.signature)
+          );
+
+          if (!isValid) {
+            throw new Error('Invalid Gelato webhook signature');
+          }
+
+          switch (event.event) {
+            case 'order_status_updated': {
+              const { orderReferenceId, fulfillmentStatus, items } = event;
+              const order = await Effect.runPromise(
+                orderService.getOrderByFulfillmentReference(orderReferenceId)
+              );
+
+              if (order) {
+                const status = mapFulfillmentStatus(fulfillmentStatus);
+                await Effect.runPromise(orderService.updateOrderStatus(order.id, status));
+
+                const trackingInfo = parseTrackingInfo(items);
+                if (trackingInfo.length > 0) {
+                  await Effect.runPromise(orderService.updateOrderTracking(order.id, trackingInfo));
+                }
+              }
+              break;
+            }
+
+            case 'order_item_tracking_code_updated': {
+              const { orderReferenceId, trackingCode, trackingUrl, shipmentMethodName } = event;
+              const order = await Effect.runPromise(
+                orderService.getOrderByFulfillmentReference(orderReferenceId)
+              );
+
+              if (order) {
+                const existingTracking = order.trackingInfo || [];
+                const newTracking = {
+                  trackingCode,
+                  trackingUrl,
+                  shipmentMethodName,
+                };
+
+                const existingIndex = existingTracking.findIndex(
+                  (t) => t.trackingCode === trackingCode
+                );
+
+                if (existingIndex >= 0) {
+                  existingTracking[existingIndex] = { ...existingTracking[existingIndex], ...newTracking };
+                } else {
+                  existingTracking.push(newTracking);
+                }
+
+                await Effect.runPromise(orderService.updateOrderTracking(order.id, existingTracking));
+                await Effect.runPromise(orderService.updateOrderStatus(order.id, 'shipped'));
+              }
+              break;
+            }
+
+            case 'order_delivery_estimate_updated': {
+              const { orderReferenceId, minDeliveryDate, maxDeliveryDate } = event;
+              const order = await Effect.runPromise(
+                orderService.getOrderByFulfillmentReference(orderReferenceId)
+              );
+
+              if (order) {
+                await Effect.runPromise(
+                  orderService.updateOrderDeliveryEstimate(order.id, {
+                    minDeliveryDate,
+                    maxDeliveryDate,
+                  })
+                );
+              }
+              break;
+            }
+          }
+        } else if (event.type === 'package_shipped' || event.type === 'order_updated') {
+          const orderId = event.data?.order?.external_id;
+
+          if (orderId) {
+            const orderResult = await Effect.runPromise(orderService.getOrder(orderId));
+            const order = orderResult.order;
+
+            if (event.type === 'package_shipped' && event.data?.shipment) {
+              const trackingInfo = parsePrintfulTrackingInfo([event.data.shipment]);
               if (trackingInfo.length > 0) {
                 await Effect.runPromise(orderService.updateOrderTracking(order.id, trackingInfo));
               }
-            }
-            break;
-          }
-
-          case 'order_item_tracking_code_updated': {
-            const { orderReferenceId, trackingCode, trackingUrl, shipmentMethodName } = event;
-            const order = await Effect.runPromise(
-              orderService.getOrderByFulfillmentReference(orderReferenceId)
-            );
-
-            if (order) {
-              const existingTracking = order.trackingInfo || [];
-              const newTracking = {
-                trackingCode,
-                trackingUrl,
-                shipmentMethodName,
-              };
-
-              const existingIndex = existingTracking.findIndex(
-                (t) => t.trackingCode === trackingCode
-              );
-              
-              if (existingIndex >= 0) {
-                existingTracking[existingIndex] = { ...existingTracking[existingIndex], ...newTracking };
-              } else {
-                existingTracking.push(newTracking);
-              }
-
-              await Effect.runPromise(orderService.updateOrderTracking(order.id, existingTracking));
               await Effect.runPromise(orderService.updateOrderStatus(order.id, 'shipped'));
+            } else if (event.type === 'order_updated' && event.data?.order?.status) {
+              const status = mapPrintfulStatus(event.data.order.status);
+              await Effect.runPromise(orderService.updateOrderStatus(order.id, status));
             }
-            break;
-          }
-
-          case 'order_delivery_estimate_updated': {
-            const { orderReferenceId, minDeliveryDate, maxDeliveryDate } = event;
-            const order = await Effect.runPromise(
-              orderService.getOrderByFulfillmentReference(orderReferenceId)
-            );
-
-            if (order) {
-              await Effect.runPromise(
-                orderService.updateOrderDeliveryEstimate(order.id, {
-                  minDeliveryDate,
-                  maxDeliveryDate,
-                })
-              );
-            }
-            break;
           }
         }
 

@@ -34,6 +34,15 @@ export type PublishOutput = z.infer<typeof PublishOutputSchema>;
 
 export const ProductCategorySchema = z.enum(['Men', 'Women', 'Accessories', 'Exclusives']);
 
+export const FulfillmentProviderSchema = z.enum(['printful', 'gelato', 'manual']);
+
+export const FulfillmentConfigSchema = z.object({
+  printfulVariantId: z.number().optional(),
+  printfulSyncVariantId: z.number().optional(),
+  gelatoProductUid: z.string().optional(),
+  fileUrl: z.string().optional(),
+});
+
 export const ProductSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -42,6 +51,8 @@ export const ProductSchema = z.object({
   currency: z.string().default('USD'),
   category: ProductCategorySchema,
   image: z.string(),
+  fulfillmentProvider: FulfillmentProviderSchema.default('manual'),
+  fulfillmentConfig: FulfillmentConfigSchema.optional(),
   productUid: z.string().optional(),
   fileUrl: z.string().optional(),
 });
@@ -55,6 +66,8 @@ export const CollectionSchema = z.object({
 export type Product = z.infer<typeof ProductSchema>;
 export type ProductCategory = z.infer<typeof ProductCategorySchema>;
 export type Collection = z.infer<typeof CollectionSchema>;
+export type FulfillmentProvider = z.infer<typeof FulfillmentProviderSchema>;
+export type FulfillmentConfig = z.infer<typeof FulfillmentConfigSchema>;
 
 export const ShippingAddressSchema = z.object({
   companyName: z.string().optional(),
