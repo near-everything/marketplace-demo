@@ -8,10 +8,18 @@ import {
   type ReactNode,
   useCallback,
 } from 'react';
+import { loadRemote } from '@module-federation/runtime';
 import { ErrorBoundary } from './error-boundary';
 import { LoadingFallback } from './loading-fallback';
+import remotesConfig from '../remotes.json';
 
-const RemoteApp = lazy(() => import('near_social_js/App'));
+const [primaryRemoteName] = Object.keys(remotesConfig.remotes);
+
+const RemoteApp = lazy(async () => {
+  const module = await loadRemote<{ default: FC }>(`${primaryRemoteName}/App`);
+  if (!module) throw new Error(`Failed to load ${primaryRemoteName}/App`);
+  return module;
+});
 
 interface SmoothSuspenseProps {
   children: ReactNode;
@@ -37,11 +45,7 @@ const SmoothSuspense: FC<SmoothSuspenseProps> = ({ children, fallback }) => {
 
   return (
     <Suspense
-      fallback={
-        <div onAnimationEnd={() => setLoaded(true)}>
-          {fallback}
-        </div>
-      }
+      fallback={<div onAnimationEnd={() => setLoaded(true)}>{fallback}</div>}
     >
       <LoadedMarker onLoad={() => setLoaded(true)} />
       <div style={contentStyle}>{children}</div>
@@ -56,7 +60,7 @@ const LoadedMarker: FC<{ onLoad: () => void }> = ({ onLoad }) => {
   return null;
 };
 
-const HOST_TITLE = 'Marketplace';
+const HOST_TITLE = remotesConfig.title || 'App';
 
 export const Main: FC = () => {
   const [ready, setReady] = useState(false);
@@ -77,9 +81,15 @@ export const Main: FC = () => {
       }
     };
 
-    window.addEventListener('near:title-change', handleTitleChange as EventListener);
+    window.addEventListener(
+      'near:title-change',
+      handleTitleChange as EventListener
+    );
     return () => {
-      window.removeEventListener('near:title-change', handleTitleChange as EventListener);
+      window.removeEventListener(
+        'near:title-change',
+        handleTitleChange as EventListener
+      );
     };
   }, []);
 

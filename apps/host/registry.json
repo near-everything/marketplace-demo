@@ -1,12 +1,11 @@
 {
   "plugins": {
-    "@data-provider/aggregator": {
-      "remote": "https://cdn.example.com/plugins/aggregator/remoteEntry.js",
+    "marketplace-api": {
+      "remote": "https://elliot-braem-1031-near-social-js-relayer-near-soc-39a429e74-ze.zephyrcloud.app",
       "variables": {
         "baseUrl": "https://example.com"
       },
       "secrets": {
-        "REDIS_URL": "{{REDIS_URL}}"
       }
     }
   }
