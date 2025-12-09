@@ -4,7 +4,7 @@ import { QueryCache, QueryClient } from '@tanstack/react-query';
 import type { ContractRouterClient } from '@orpc/contract';
 import type { contract } from '../../../api/src/contract';
 
-export const API_URL = '/api/rpc';
+export const API_URL = `${window.location.origin}/api/rpc`;
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
