@@ -1,138 +1,123 @@
-# near-social-js Relayer
+# marketplace-api
 
-A relayer plugin for near-social-js that enables gasless transactions on [NEAR Social](https://near.social) (`social.near` contract).
+every-plugin based API for marketplace operations.
 
-## Features
+## Plugin Architecture
 
-- **Connect**: Ensures users have storage deposit on social.near
-- **Publish**: Relays signed delegate actions (meta-transactions) for gasless social posts and profile updates
+Built with **every-plugin** framework (Rspack + Module Federation):
 
-## Quick Start
-
-### 1. Install dependencies
-
-```bash
-cd demo/relayer
-bun install
+```
+┌─────────────────────────────────────────────────────────┐
+│                    createPlugin()                       │
+├─────────────────────────────────────────────────────────┤
+│  variables: { network, contractId, ... }                │
+│  secrets: { STRIPE_SECRET_KEY, PRINTFUL_API_KEY, ... }  │
+│  contract: oRPC route definitions                       │
+│  initialize(): Effect → services                        │
+│  createRouter(): handlers using services                │
+└─────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│                   Host Integration                      │
+├─────────────────────────────────────────────────────────┤
+│  registry.json → plugin URL + secrets                   │
+│  runtime.ts → createPluginRuntime().usePlugin()         │
+│  routers/index.ts → merge plugin.router into AppRouter  │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### 2. Configure secrets
+**Plugin Structure:**
 
-Create a `.env` file or set environment variables:
+- `contract.ts` - oRPC contract definition (routes, schemas)
+- `index.ts` - Plugin initialization + router handlers
+- `schema.ts` - Zod schemas for input/output validation
+- `services/` - Business logic (products, orders, stripe, fulfillment)
+- `db/` - Database schema and migrations
 
-```bash
-RELAYER_ACCOUNT_ID=your-relayer.near
-RELAYER_PRIVATE_KEY=ed25519:...
-```
+**Extending with more plugins:**
 
-### 3. Run the dev server
-
-```bash
-bun run dev
-```
-
-The relayer will be available at `http://localhost:3014/relayer`
+Each domain can be its own plugin with independent:
+- Contract definition
+- Initialization logic  
+- Router handlers
+- Database schema
 
 ## API Endpoints
 
-### POST /connect
+**Products** - Product catalog from Printful
 
-Ensures an account has storage deposit on social.near.
+- `GET /products` - List products
+- `GET /products/{id}` - Get product
+- `GET /products/search` - Search products
+- `GET /products/featured` - Featured products
 
-**Request:**
-```json
-{
-  "accountId": "user.near"
-}
-```
+**Collections**
 
-**Response:**
-```json
-{
-  "accountId": "user.near",
-  "hasStorage": false,
-  "depositTxHash": "ABC123..."
-}
-```
+- `GET /collections` - List collections
+- `GET /collections/{slug}` - Get collection with products
 
-### POST /publish
+**Checkout & Orders**
 
-Submits a signed delegate action to the network.
+- `POST /checkout` - Create Stripe checkout session
+- `GET /orders` - List user orders
+- `GET /orders/{id}` - Get order details
 
-**Request:**
-```json
-{
-  "payload": "base64-encoded-signed-delegate-action"
-}
-```
+**Sync** - Product sync from fulfillment providers
 
-**Response:**
-```json
-{
-  "hash": "DEF456..."
-}
-```
+- `POST /sync` - Trigger product sync
+- `GET /sync-status` - Check sync status
 
-### GET /ping
+**Relayer** - NEAR meta-transactions
 
-Health check endpoint.
+- `POST /connect` - Ensure storage deposit
+- `POST /publish` - Submit delegate action
 
-**Response:**
-```json
-{
-  "status": "ok",
-  "timestamp": "2024-01-01T00:00:00.000Z"
-}
-```
+**Webhooks**
 
-## Client Usage
+- `POST /webhooks/stripe` - Stripe payment events
+- `POST /webhooks/fulfillment` - Gelato/Printful fulfillment events
 
-### Creating a delegate action for profile update
+## Tech Stack
 
-```typescript
-import { Social } from "near-social-js";
-import { Near } from "near-kit";
+- **Framework**: every-plugin + oRPC
+- **Effects**: Effect-TS for service composition
+- **Database**: SQLite (libsql) + Drizzle ORM
+- **Payments**: Stripe
+- **Fulfillment**: Printful, Gelato
+- **NEAR**: near-kit + near-social-js
 
-const near = new Near({
-  network: "mainnet",
-  wallet: yourWalletAdapter,
-});
+## Available Scripts
 
-const social = new Social({ near });
-
-const tx = await social.setProfile("user.near", {
-  name: "My Name",
-  description: "Hello world",
-});
-
-const { payload } = await tx.delegate();
-
-const response = await fetch("http://localhost:3014/relayer/publish", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ payload }),
-});
-
-const result = await response.json();
-console.log("Transaction hash:", result.hash);
-```
+- `bun dev` - Start dev server
+- `bun build` - Build plugin
+- `bun test` - Run tests
+- `bun db:push` - Push schema to database
+- `bun db:studio` - Open Drizzle Studio
 
 ## Configuration
 
-### Variables
+**Host registry** (`host/registry.json`):
 
-| Name | Type | Default | Description |
-|------|------|---------|-------------|
-| `network` | `"mainnet" \| "testnet"` | `"mainnet"` | NEAR network to connect to |
-| `contractId` | `string` | `"social.near"` | Social contract ID |
+```json
+{
+  "plugins": {
+    "marketplace-api": {
+      "remote": "https://...",
+      "secrets": {
+        "STRIPE_SECRET_KEY": "{{STRIPE_SECRET_KEY}}",
+        "PRINTFUL_API_KEY": "{{PRINTFUL_API_KEY}}"
+      }
+    }
+  }
+}
+```
 
-### Secrets
+**Required Secrets:**
 
-| Name | Required | Description |
-|------|----------|-------------|
-| `relayerAccountId` | Yes | Account ID of the relayer (pays for gas) |
-| `relayerPrivateKey` | Yes | Private key of the relayer account |
-
-## License
-
-Part of the [near-social-js](https://github.com/NEARBuilders/near-social-js) library.
+- `STRIPE_SECRET_KEY` - Stripe API key
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
+- `PRINTFUL_API_KEY` - Printful API key
+- `GELATO_API_KEY` - Gelato API key
+- `RELAYER_ACCOUNT_ID` - NEAR relayer account
+- `RELAYER_PRIVATE_KEY` - NEAR relayer private key
+- `DATABASE_URL` - SQLite database URL
