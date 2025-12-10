@@ -1,4 +1,4 @@
-# host
+# everything.market
 
 Server host for the marketplace with authentication and Module Federation.
 
@@ -11,8 +11,8 @@ The host orchestrates two federation systems:
 │                        host                             │
 │                                                         │
 │  ┌────────────────────────────────────────────────┐     │
-│  │                  server.ts                      │     │
-│  │  Hono.js + oRPC handlers                        │     │
+│  │                  server.ts                     │     │
+│  │  Hono.js + oRPC handlers                       │     │
 │  └────────────────────────────────────────────────┘     │
 │           ↑                         ↑                   │
 │  ┌────────┴────────┐       ┌────────┴────────┐          │

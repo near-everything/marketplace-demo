@@ -1,6 +1,6 @@
 # marketplace-api
 
-every-plugin based API for marketplace operations.
+[every-plugin](https://github.com/near-everything/every-plugin) based API for marketplace operations.
 
 ## Plugin Architecture
 
@@ -37,6 +37,7 @@ Built with **every-plugin** framework (Rspack + Module Federation):
 **Extending with more plugins:**
 
 Each domain can be its own plugin with independent:
+
 - Contract definition
 - Initialization logic  
 - Router handlers
